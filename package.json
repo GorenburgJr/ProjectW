@@ -1,0 +1,27 @@
+{
+  "name": "telebot",
+  "version": "0.0.1",
+  "description": "DateBot",
+  "main": "app.js",
+  "scripts": {
+    "start": "ts-node-dev --respawn ./app_gr.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GorenburgJr/ProjectW.git"
+  },
+  "author": "Gorenburg Stas",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GorenburgJr/ProjectW/issues"
+  },
+  "homepage": "https://github.com/GorenburgJr/ProjectW#readme",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "grammy": "^1.35.0",
+    "typeorm": "^0.3.21"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0"
+  }
+}
