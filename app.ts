@@ -1,6 +1,6 @@
 import { Bot as GrammyBot, GrammyError, HttpError } from "grammy";
-
-import dotenv from 'dotenv'
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm"
+import * as dotenv from 'dotenv'
 
 dotenv.config()
 
@@ -9,6 +9,18 @@ const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
 bot.api.setMyCommands([
 
 ])
+bot.command('start', (ctx) => { //регистрация
+    ctx.reply('im working')
+})
+
+bot.command('profile', (ctx) => {//профиль
+
+})
+
+
+bot.command('help', (ctx) => {
+
+})
 
 bot.catch((err) => { //err
     const ctx = err.ctx
