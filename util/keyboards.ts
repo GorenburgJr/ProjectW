@@ -1,0 +1,111 @@
+import { Bot as GrammyBot , InlineKeyboard } from 'grammy'
+import * as dotenv from "dotenv";
+dotenv.config()
+const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
+
+const bioKeyboard1 = new InlineKeyboard()
+.text('Языки 👅', 'languges') 
+.text('Знак Зодиака 🧚‍♀️', 'zodiac_sigh').row()
+.text('Рост 📏', 'height')
+.text('Тип Личности', 'pers_type').row()
+.text('Я ищу👀', 'my_search')
+.text('Образование 👨🏻‍🎓', 'education').row()
+.text('Дети 👼', "kids_wish")
+.text('Описание', 'bio').row()
+.text('Тип общения 💬', 'comm_type').row()
+.text('Вперед', 'forward')
+.text('Сохранить и выйти', 'quit_editing')
+
+const bioKeyboard2 = new InlineKeyboard()
+.text('Язык Любви ❤️', 'love_lang')
+.text('Работа', 'myWork').row()
+.text('Питомцы', 'myPets')
+.text('Алкоголь', 'attituAlco').row()
+.text("Курение", "attituSmoke")
+.text('Спортзал', "attitudeGym").row()
+.text('Предпочтение к еде', "atitudeFood")
+.text('СоцСети', 'mySocMedia').row()
+.text('NightLive', 'myNightLive').row()
+.text('Назад', 'backward')
+.text('Сохранить и выйти', 'quit_editing');
+
+const zodiacKeyboard = new InlineKeyboard()
+.text('Козерог♑️', 'capricorn')
+.text('Водолей♒️', 'aquarius').row()
+.text('Рыбы♓️', 'pisces')
+.text('Овен♈️', 'aries').row()
+.text('Телец♉️', 'taurus')
+.text('Близнецы♊️', 'gemini').row()
+.text('Рак♋️', 'cancer')
+.text('Лев♌️', 'lion').row()
+.text('Дева♍️', 'virgo')
+.text('Весы♎️', 'libra').row()
+.text('Скорпион♏️', 'scorpio')
+.text('Стрелец♐️', 'sagittarius').row()
+.text('Назад', 'back');
+
+
+const typePersKeyboard = new InlineKeyboard()
+.text('INTJ', 'intj')
+.text('INTP', 'intp')
+.text('ENTJ', 'entj')
+.text('ENTP', 'entp').row()
+.text('INFJ', 'infj')
+.text('INFP', 'infp')
+.text('ENFJ', 'enfj')
+.text('ENFP', 'enfp').row() 
+.text('ISTJ', 'istj')
+.text('ISFJ', 'isfj')
+.text('ESTJ', 'estj')
+.text('ESFJ', 'esfj').row()
+.text('ISTP', 'istp')
+.text('ISFP', 'isfp')
+.text('ESTP', 'estp')
+.text('ESFP', 'esfp').row()
+.text('Назад', 'back');
+
+const mySearchKeyboard = new InlineKeyboard()
+.text('Просто повеселиться 🎉', 'justFun')
+.text('Найти друзей 👋', 'findFriend')
+.text('Все еще разбираюсь 🤔', 'thinking').row()
+.text('Долгосрочный партнер 💘', 'longTermPartner')
+.text('Долго- или краткосрочно 😍', 'termLove')
+.text('Долго- или краткосрочно 🥂', 'termDrink').row()
+.text('Назад', 'back');
+
+const educationKeyboard = new InlineKeyboard()
+.text('Бакалавриат 🎓', 'bachelors')
+.text('Колледж', 'college')
+.text('Средняя школа', 'school').row()
+.text('Доктор Наук', 'science')
+.text("Аспирантура", 'postgraduate')
+.text('Магистратура', 'Masters').row()
+.text('Назад', 'back');
+
+
+const kidsKeyboard = new InlineKeyboard()
+.text('Я хочу детей', 'wantKids')
+.text('Я не хочу детей', 'noWantKids').row()
+.text('У меня есть дети и хочу еще', 'haveNwantKids')
+.text('У меня есть дети, но не хочу больше', 'haveNnowantKids').row()
+.text('Пока не знаю', "idkKids").row()
+.text('Назад', 'back')
+
+
+const commTypeKeyboard = new InlineKeyboard()
+.text('Много переписываюсь', "talkChating")
+.text("Общаюсь по телефону", 'talkPhone')
+.text('Люблю видеочаты', 'talkVideo').row()
+.text('Не люблю чатиться', 'talkNoChating')
+.text('Лучше встречусь лично', "talkMeet").row()
+.text('Назад', 'back')
+
+const loveLangKeyboard = new InlineKeyboard()
+.text("Жесты внимания", 'LoveLAtt')
+.text("Подарки", 'loveLPres')
+.text("Прикосновения", 'loveLTouch')
+.text('Комплименты', 'loveLComplim' )
+.text("Время вместе", 'loveLTime')
+.text('Назад', 'back')
+
+export {loveLangKeyboard, bioKeyboard1, bioKeyboard2, zodiacKeyboard, commTypeKeyboard, typePersKeyboard, kidsKeyboard, educationKeyboard, mySearchKeyboard}

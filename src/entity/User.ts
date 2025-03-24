@@ -18,4 +18,7 @@ export class User {
 
     @Column()
     regPassed: boolean
+
+    @Column({default: false})
+    extrainf: boolean
 }
