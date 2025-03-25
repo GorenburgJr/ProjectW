@@ -14,13 +14,13 @@ export class extraInfo {
     education: number
 
     @Column({ type: "int", default: null })
-    kidswish: number
+    familyplans: number
 
     @Column({ type: "int", default: null })
     perstype: number
 
     @Column({ type: "int", default: null })
-    commstyle: number
+    commtype: number
 
     @Column({ type: "int", default: null })
     lovelang: number
@@ -37,11 +37,11 @@ export class extraInfo {
     @Column({ type: "int", default: null })
     mysearch: number
 
-    @Column({ type: "int", default: null })
-    work: number
+    @Column({ type: "varchar", default: null })
+    work: string
 
-    @Column({ type: "int", default: null })
-    pets: number
+    @Column({ type: "varchar", default: null })
+    pets: string
 
     @Column({ type: "int", default: null })
     alcohol: number
@@ -61,7 +61,9 @@ export class extraInfo {
     @Column({ type: "int", default: null })
     nightlive: number
 
-    @OneToOne(() => User, user => user.extraInfo)
+    @OneToOne(() => User, user => user.extraInfo, {
+        onDelete: 'CASCADE'
+      })
     @JoinColumn({ name: 'chatId', referencedColumnName: 'chatId' })
     user: User;
 }

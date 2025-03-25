@@ -24,13 +24,13 @@ export class User {
     @Column({default: null})
     sexSearch: boolean
 
-    @Column()
-    regPassed: boolean
+    @Column({default:false})
+    inSearch: boolean
 
-    @OneToOne(() => extraInfo, extra => extra.user)
+    @OneToOne(() => extraInfo, extra => extra.user,  { cascade: true, onDelete: 'CASCADE' })
     extraInfo?: extraInfo;
 
-    @OneToOne(() => Location, location => location.user)
+    @OneToOne(() => Location, location => location.user,  { cascade: true, onDelete: 'CASCADE' })
     location?: Location;
 
 }
