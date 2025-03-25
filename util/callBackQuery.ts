@@ -1,177 +1,373 @@
 import { Bot as GrammyBot , InlineKeyboard } from 'grammy'
 import * as dotenv from "dotenv";
-import { bioKeyboard1, bioKeyboard2 } from './keyboards';
+import { bioKeyboard1, bioKeyboard2, cancelBackKeyboard,zodiacKeyboard, typePersKeyboard } from './keyboards';
 import{AppDataSource} from '../src/data-source'
 import { User } from '../src/entity/User';
+import { msgUser } from './userProfile';
+import { extraInfo } from '../src/entity/ExtraInfo';
 dotenv.config()
 const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
+
 
 
 async function CALLBACK (ctx) {
     const chatId = String(ctx.chat.id)
     const data = ctx.callbackQuery.data;
+    const comp = ctx.session.editingComponent
+    const extra = await AppDataSource.manager.findOneBy(extraInfo, { chatId });
+    const extraInfoRepo = AppDataSource.getRepository(extraInfo)
     //таблица выбора
     
-    (data === 'languges') ? true: void 0;
+    if(data === 'languges'){
+    ctx.reply('Напиши Языки',{
+        reply_markup: cancelBackKeyboard}
+    )
+    ctx.session.editingComponent = 'language'
+    return ctx
+    }
+    if(data == 'back'){
+        if(ctx.session.editingComponent = 'persType'){
+            ctx.editMessageText(await msgUser(ctx), {reply_markup: bioKeyboard1})
+            return
+        }
+        ctx.deleteMessage()
+    }
+    // if(ctx.callbackQuery.data == 'back' && !(ctx.session.editingComponent === 'zodiac' || 'persType' || 'search' || 'education' || 'kids' || 'alcohol' || 'smoke' || 'gym' || 'food' || 'socMedia' || 'nightLive')){
+    //     ctx.editMessageText(await msgUser(ctx),{
+    //         reply_markup: bioKeyboard1})
+        
+    // } else 
     
-   (data === 'zodiac_sigh') ? true : void 0;
+    if(data === 'zodiac_sigh'){
+        ctx.session.editingComponent = 'zodiac'
+        ctx.reply('Выбери свой ЗЗ', {
+            reply_markup: zodiacKeyboard
+        })
+    }
 
-   (data === 'height') ? true : void 0;
+    if(data === 'height'){
+        ctx.reply('Напиши свой рост',{
+            reply_markup: cancelBackKeyboard}
+        )
+        ctx.session.editingComponent = 'height'
+        return ctx
+    }
     
-   (data === 'pers_type') ? true : void 0;
+    if(data === 'pers_type'){
+        ctx.editMessageText(await msgUser(ctx), {reply_markup: typePersKeyboard})
+        ctx.session.editingComponent = 'persType'
+        return ctx
+    }
     
-   (data === 'my_search') ? true : void 0;
+    if(data === 'my_search'){
+
+    }
     
-   (data === 'education') ? true : void 0;
+    if(data === 'education'){
     
-   (data === 'kids_wish') ? true : void 0;
+    }
     
-   (data === 'bio') ? true : void 0;
+    if(data === 'kids_wish'){
     
-   (data === 'comm_type') ? true : void 0;
+    }
+    
+    if(data === 'bio'){
+    
+    }
+    
+    if(data === 'comm_type'){
+    
+    }
 
     // вторая часть
-   (data === 'love_lang') ? true : void 0;
+    if(data === 'love_lang'){
     
-   (data === 'myWork') ? true : void 0;
+    }
     
-   (data === 'myPets') ? true : void 0;
+    if(data === 'myWork'){
     
-   (data === 'attituAlco') ? true : void 0;
+    }
     
-   (data === 'attituSmoke') ? true : void 0;
+    if(data === 'myPets'){
     
-   (data === 'attitudeGym') ? true : void 0;
+    }
     
-   (data === 'atitudeFood') ? true : void 0;
-    
-   (data === 'mySocMedia') ? true : void 0;
-    
-   (data === 'myNightLive') ? true : void 0;
-    // навигация по разделам
-   (data === 'forward') ?  (ctx.editMessageText(`${ctx.from.first_name}, Твой профиль сейчас выглядит так: ${(await AppDataSource.manager.findOneBy(User, { chatId })).name}, ${(await AppDataSource.manager.findOneBy(User, { chatId })).age}`, {
-    reply_markup: bioKeyboard2
-}))    : void 0;
-    
-   (data === 'backward') ?  (ctx.editMessageText(`${ctx.from.first_name}, Твой профиль сейчас выглядит так: ${(await AppDataSource.manager.findOneBy(User, { chatId })).name}, ${(await AppDataSource.manager.findOneBy(User, { chatId })).age}`, {
-    reply_markup: bioKeyboard1
-}))  : void 0;
-    
-   (data === 'quit_editing') ? true : void 0;
-    //Знак зодиака
-   (data === 'capricorn') ? true : void 0;
-    
-   (data === 'aquarius') ? true : void 0;
-    
-   (data === 'pisces') ? true : void 0;
-    
-   (data === 'aries') ? true : void 0;
-    
-   (data === 'taurus') ? true : void 0;
-    
-   (data === 'gemini') ? true : void 0;
-    
-   (data === 'cancer') ? true : void 0;
-    
-   (data === 'lion') ? true : void 0;
-    
-   (data === 'virgo') ? true : void 0;
-    
-   (data === 'libra') ? true : void 0;
-    
-   (data === 'scorpio') ? true : void 0;
-    
-   (data === 'sagittarius') ? true : void 0;
-    //Тип личности
-   (data === 'intj') ? true : void 0;
-    
-   (data === 'intp') ? true : void 0;
-    
-   (data === 'entj') ? true : void 0;
-    
-   (data === 'entp') ? true : void 0;
-    
-   (data === 'infj') ? true : void 0;
-    
-   (data === 'infp') ? true : void 0;
-    
-   (data === 'enfj') ? true : void 0;
-    
-   (data === 'enfp') ? true : void 0;
-    
-   (data === 'istj') ? true : void 0;
-    
-   (data === 'isfj') ? true : void 0;
-    
-   (data === 'estj') ? true : void 0;
-    
-   (data === 'esfj') ? true : void 0;
-    
-   (data === 'istp') ? true : void 0;
-    
-   (data === 'isfp') ? true : void 0;
-    
-   (data === 'estp') ? true : void 0;
+    if(data === 'attituAlco'){
 
-   (data === 'esfp') ? true : void 0;
+    }
+    
+    if(data === 'attituSmoke'){
+
+    }
+    
+    if(data === 'attitudeGym'){
+
+    }
+    
+    if(data === 'atitudeFood'){
+    
+    }
+    
+    if(data === 'mySocMedia'){
+
+    }
+    
+    if(data === 'myNightLive'){
+    
+    }
+    // навигация по разделам
+    if (data === 'forward') {
+        ctx.editMessageText(await msgUser(ctx),{reply_markup: bioKeyboard2})
+    }
+    if (data === 'backward'){
+        ctx.editMessageText(await msgUser(ctx),{reply_markup: bioKeyboard1})
+    }
+    
+    if(data === 'quit_editing'){
+        ctx.reply('Анкета успешно сохранена!')
+        ctx.reply('Приступим к поиску')
+        ctx.session.step = "searchProfiles"
+        return ctx
+    }
+    //Знак зодиака
+    if(data === 'capricorn'){
+        extra.zodiacsign = 0
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'aquarius'){
+        extra.zodiacsign = 1
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'pisces'){
+        extra.zodiacsign = 2
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'aries'){
+        extra.zodiacsign = 3
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'taurus'){
+        extra.zodiacsign = 4
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'gemini'){
+        extra.zodiacsign = 5
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'cancer'){
+        extra.zodiacsign = 6
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'lion'){
+        extra.zodiacsign = 7
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'virgo'){
+        extra.zodiacsign = 8
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'libra'){
+        extra.zodiacsign = 9
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'scorpio'){
+        extra.zodiacsign = 10
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    
+    if(data === 'sagittarius'){
+        extra.zodiacsign = 11
+        await extraInfoRepo.save(extra)
+        ctx.deleteMessage()
+        ctx.reply(await msgUser(ctx),{reply_markup: bioKeyboard1})
+        ctx.session.editingComponent = null
+        return ctx
+    }
+    //Тип личности
+if(data === 'intj'){
+}
+    
+if(data === 'intp'){
+}
+    
+if(data === 'entj'){
+}
+    
+if(data === 'entp'){
+}
+    
+if(data === 'infj'){
+}
+    
+if(data === 'infp'){
+}
+    
+if(data === 'enfj'){
+}
+    
+if(data === 'enfp'){
+}
+    
+if(data === 'istj'){
+}
+    
+if(data === 'isfj'){
+}
+    
+if(data === 'estj'){
+}
+    
+if(data === 'esfj'){
+}
+    
+if(data === 'istp'){
+}
+    
+if(data === 'isfp'){
+}
+    
+if(data === 'estp'){
+}
+
+if(data === 'esfp'){
+}
     //кого ищешь
-   (data === 'justFun') ? true : void 0;
+if(data === 'justFun'){
+}
     
-   (data === 'findFriend') ? true : void 0;
+if(data === 'findFriend'){
+}
     
-   (data === 'thinking') ? true : void 0;
+if(data === 'thinking'){
+}
     
-   (data === 'longTermPartner') ? true : void 0;
+if(data === 'longTermPartner'){
+}
     
-   (data === 'termLove') ? true : void 0;
+if(data === 'termLove'){
+}
     
-   (data === 'termDrink') ? true : void 0;
+if(data === 'termDrink'){
+}
     //Образование
-   (data === 'bachelors') ? true : void 0;
+if(data === 'bachelors'){
+}
     
-   (data === 'college') ? true : void 0;
+if(data === 'college'){
+}
     
-   (data === 'school') ? true : void 0;
+if(data === 'school'){
+}
     
-   (data === 'science') ? true : void 0;
+if(data === 'science'){
+}
     
-   (data === 'postgraduate') ? true : void 0;
+if(data === 'postgraduate'){
+}
     
-   (data === 'Masters') ? true : void 0;
+if(data === 'Masters'){
+}
     //Дети
-   (data === 'wantKids') ? true : void 0;
+if(data === 'wantKids'){
+}
     
-   (data === 'noWantKids') ? true : void 0;
+if(data === 'noWantKids'){
+}
     
-   (data === 'haveNwantKids') ? true : void 0;
+if(data === 'haveNwantKids'){
+}
     
-   (data === 'haveNnowantKids') ? true : void 0;
+if(data === 'haveNnowantKids'){
+}
     
-   (data === 'idkKids') ? true : void 0;
+if(data === 'idkKids'){
+}
     //Стиль общения
-   (data === 'talkChating') ? true : void 0;
+if(data === 'talkChating'){
+}
     
-   (data === 'talkPhone') ? true : void 0;
+if(data === 'talkPhone'){
+}
     
-   (data === 'talkVideo') ? true : void 0;
+if(data === 'talkVideo'){
+}
     
-   (data === 'talkNoChating') ? true : void 0;
+if(data === 'talkNoChating'){
+}
     
-   (data === 'talkMeet') ? true : void 0;
+if(data === 'talkMeet'){
+}
     //Язык любви
-   (data === 'LoveLAtt') ? true : void 0;
+if(data === 'LoveLAtt'){
+}
     
-   (data === 'loveLPres') ? true : void 0;
+if(data === 'loveLPres'){
+}
     
-   (data === 'loveLTouch') ? true : void 0;
+if(data === 'loveLTouch'){
+}
     
-   (data === 'loveLComplim') ? true : void 0;
+if(data === 'loveLComplim'){
+}
     
-   (data === 'loveLTime') ? true : void 0;
+if(data === 'loveLTime'){
+}
     
-   (data === 'back') ? true : void 0;
-    
-   return ctx
+
 }
 
 export {CALLBACK}

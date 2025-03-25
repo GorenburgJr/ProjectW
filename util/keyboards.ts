@@ -1,7 +1,11 @@
-import { Bot as GrammyBot , InlineKeyboard } from 'grammy'
+import { Bot as GrammyBot , InlineKeyboard, Keyboard } from 'grammy'
 import * as dotenv from "dotenv";
 dotenv.config()
 const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
+
+const cancelBackKeyboard = new InlineKeyboard()
+    .text('Назад', 'back')
+    .text('Удалить ❌', 'delete');
 
 const bioKeyboard1 = new InlineKeyboard()
 .text('Языки 👅', 'languges') 
@@ -42,7 +46,8 @@ const zodiacKeyboard = new InlineKeyboard()
 .text('Весы♎️', 'libra').row()
 .text('Скорпион♏️', 'scorpio')
 .text('Стрелец♐️', 'sagittarius').row()
-.text('Назад', 'back');
+.text('Назад', 'back')
+.text('Удалить ❌', 'delete');
 
 
 const typePersKeyboard = new InlineKeyboard()
@@ -62,7 +67,8 @@ const typePersKeyboard = new InlineKeyboard()
 .text('ISFP', 'isfp')
 .text('ESTP', 'estp')
 .text('ESFP', 'esfp').row()
-.text('Назад', 'back');
+.text('Назад', 'back')
+.text('Удалить ❌', 'delete');
 
 const mySearchKeyboard = new InlineKeyboard()
 .text('Просто повеселиться 🎉', 'justFun')
@@ -108,4 +114,14 @@ const loveLangKeyboard = new InlineKeyboard()
 .text("Время вместе", 'loveLTime')
 .text('Назад', 'back')
 
-export {loveLangKeyboard, bioKeyboard1, bioKeyboard2, zodiacKeyboard, commTypeKeyboard, typePersKeyboard, kidsKeyboard, educationKeyboard, mySearchKeyboard}
+const yesNoKeyboard = new Keyboard()
+    .text('Да').resized()
+    .text('Нет').oneTime();
+
+const sexKeyboard = new Keyboard()
+.text('👕').resized()
+.text('👚').oneTime();
+
+const shareLocation = new Keyboard().requestLocation('📍').oneTime().resized()
+
+export {cancelBackKeyboard, shareLocation, sexKeyboard, loveLangKeyboard, bioKeyboard1, bioKeyboard2, zodiacKeyboard, commTypeKeyboard, typePersKeyboard, kidsKeyboard, educationKeyboard, mySearchKeyboard, yesNoKeyboard}

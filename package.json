@@ -5,7 +5,8 @@
    "main": "app.js",
    "scripts": {
       "start": "ts-node-dev --respawn ./app.ts",
-      "typeorm": "typeorm-ts-node-commonjs"
+      "typeorm": "typeorm-ts-node-commonjs",
+      "reset-db": "ts-node reset.ts"
    },
    "repository": {
       "type": "git",
@@ -22,7 +23,7 @@
       "grammy": "^1.35.0",
       "pg": "^8.4.0",
       "reflect-metadata": "^0.1.13",
-      "typeorm": "0.3.21"
+      "typeorm": "^0.3.21"
    },
    "devDependencies": {
       "@types/node": "^16.11.10",

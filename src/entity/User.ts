@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, Unique} from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, Unique, OneToOne, JoinColumn } from "typeorm"
+import { extraInfo } from "./ExtraInfo"
+import { Location } from "./Location"
 
 @Entity()
 @Unique(["chatId"])
@@ -16,9 +18,19 @@ export class User {
     @Column()
     age: number
 
+    @Column({default: true})
+    sex: boolean
+
+    @Column({default: null})
+    sexSearch: boolean
+
     @Column()
     regPassed: boolean
 
-    @Column({default: false})
-    extrainf: boolean
+    @OneToOne(() => extraInfo, extra => extra.user)
+    extraInfo?: extraInfo;
+
+    @OneToOne(() => Location, location => location.user)
+    location?: Location;
+
 }

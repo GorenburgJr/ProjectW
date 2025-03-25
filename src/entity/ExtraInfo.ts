@@ -1,66 +1,67 @@
-import { Entity, JoinColumn, Column, OneToOne } from "typeorm"
+import { Entity,  Column, OneToOne, PrimaryColumn,JoinColumn } from "typeorm"
 import { User } from "./User"
 
 @Entity()
 export class extraInfo {
 
-    @OneToOne(() => User)
-    @JoinColumn()
-    chatID: User
+    @PrimaryColumn({ type: "bigint" })
+    chatId: string
 
-    @Column()
+    @Column({ type: "int", default: null })
     zodiacsign: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     education: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     kidswish: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     perstype: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     commstyle: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     lovelang: number
 
-    @Column()
+    @Column({ type: "varchar", default: null })
     text: string
 
-    @Column()
-    languages: number
+    @Column({ type: "varchar", default: null })
+    languages: string
 
-    @Column()
+    @Column({ type: "int", default: null })
     height: number
 
-    @Column()
-    my_search: number
+    @Column({ type: "int", default: null })
+    mysearch: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     work: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     pets: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     alcohol: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     smoke: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     gym: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     food: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     socmedia: number
 
-    @Column()
+    @Column({ type: "int", default: null })
     nightlive: number
 
-
+    @OneToOne(() => User, user => user.extraInfo)
+    @JoinColumn({ name: 'chatId', referencedColumnName: 'chatId' })
+    user: User;
 }
