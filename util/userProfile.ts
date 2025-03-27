@@ -1,12 +1,27 @@
 import { AppDataSource } from "../src/data-source"
 import { User } from "../src/entity/User"
 import { extraInfo } from "../src/entity/ExtraInfo"
-import { zodiacTypes, persTypes, searchTypes,educationTypes, familyPlansTypes,loveLangTypes, alcoTypes, smokeTypes, gymTypes, foodTypes, socMediaTypes, commTypes, nightLiveTypes, sexTypes } from "./types"
+import { zodiacTypes, 
+    persTypes, 
+    searchTypes,
+    educationTypes, 
+    familyPlansTypes,
+    loveLangTypes, 
+    alcoTypes, 
+    smokeTypes, 
+    gymTypes, 
+    foodTypes, 
+    socMediaTypes, 
+    commTypes, 
+    nightLiveTypes, 
+    sexTypes } from "./types"
+import { UserImages } from "../src/entity/UserImages"
+import * as fs from "fs";
+import * as path from 'path'
+import {InputFile} from 'grammy'
 
-async function msgUser(Context) {
-    const ctx = Context
+async function msgUser(ctx) {
     const chatId = String(ctx.chat.id)
-
     const user = await AppDataSource.manager.findOneBy(User, { chatId });
     const extra = await AppDataSource.manager.findOneBy(extraInfo, { chatId });
 
@@ -70,11 +85,21 @@ async function msgUser(Context) {
 
     }
 
-
-
-
-    
-
     return messageText
 }
-export {msgUser}
+
+async function imgUser(ctx) {
+    const chatId = String(ctx.chat.id)
+    const userimages = await AppDataSource.manager.findOneBy(UserImages, {chatId })
+    const folderPath = path.join(__dirname, "..", "photos");
+
+    const mediaGroup = userimages.photoFilenames.map((name) => {
+        const fullPath = path.join(folderPath, name);
+        return {
+            type: "photo",
+            media: new InputFile(fs.createReadStream(fullPath)),
+        };
+    });
+    await ctx.api.sendMediaGroup(chatId, mediaGroup); 
+}
+export {imgUser, msgUser}

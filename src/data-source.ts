@@ -4,6 +4,8 @@ import { User } from "./entity/User"
 import { Report } from "./entity/Report"
 import { extraInfo } from "./entity/ExtraInfo"
 import { Location } from "./entity/Location"
+import { UserImages } from "./entity/UserImages"
+import { SearchSettings } from "./entity/searchSetting"
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -14,7 +16,7 @@ export const AppDataSource = new DataSource({
     database: "teledb",
     synchronize: true,
     logging: false,
-    entities: [User, extraInfo, Location, Report],
+    entities: [User, extraInfo, Location, Report, UserImages, SearchSettings],
     migrations: [],
     subscribers: [],
 })
