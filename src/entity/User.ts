@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, Unique, OneToOne, JoinColumn } 
 import { extraInfo } from "./ExtraInfo"
 import { Location } from "./Location"
 import { UserImages } from "./UserImages"
-import { SearchSettings } from "./searchSetting"
+import { SearchSettings } from "./SearchSetting"
 
 @Entity()
 @Unique(["chatId"])
@@ -20,11 +20,11 @@ export class User {
     @Column()
     age: number
 
-    @Column({default: true})
-    sex: boolean
+    @Column({default: 0})
+    sex: number
 
-    @Column({default: null})
-    sexSearch: boolean
+    @Column({default: 0})
+    sexSearch: number
 
     @Column({default:false})
     inSearch: boolean

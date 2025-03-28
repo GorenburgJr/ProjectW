@@ -1,13 +1,18 @@
 import { AppDataSource } from "../src/data-source";
 import { User } from "../src/entity/User";
-import { bioKeyboard1, mainInfoKeyboard, sexKeyboard } from "./keyboards";
+import { bioKeyboard1, mainInfoKeyboard, sexKeyboard } from "../util/keyboards";
+import { sexTypes } from "../util/types";
 import { imgUser, msgUser } from "./userProfile";
 
 export async function userRegistration(ctx) {
     const chatId = String(ctx.chat.id);
-    const text = ctx.message.text.trim();
+    const text = ctx.message.text;
     let user = await AppDataSource.manager.findOneBy(User, { chatId });
     const userRepo = AppDataSource.getRepository(User);
+    if (!user) {
+        user = new User();
+        user.chatId = chatId;
+    }
 
     switch (ctx.session.step) {
             case "askConsent":
@@ -26,13 +31,6 @@ export async function userRegistration(ctx) {
               if (text.length >= 25){
                 await ctx.reply('Имя слишком длинное')
               }
-              if(ctx.session.editing){
-                await userRepo.update({ chatId }, { name: text })
-                ctx.session.step = null;
-                await imgUser(ctx)
-                ctx.reply(await msgUser(ctx), {reply_markup:mainInfoKeyboard})
-                return
-              }
               ctx.session.name = text
               ctx.session.step = "askAge"
               await ctx.reply("Теперь напиши возраст:")
@@ -41,14 +39,11 @@ export async function userRegistration(ctx) {
               const age = Number(text)
               if (isNaN(age)) {
                 await ctx.reply("Напиши цифру.")
-                return
+                break
               }
-              if(ctx.session.editing){
-                await userRepo.update({ chatId }, { age: Number(text) })
-                ctx.session.step = null;
-                await imgUser(ctx)
-                ctx.reply(await msgUser(ctx), {reply_markup:mainInfoKeyboard})
-                return
+              if(age>150 || age<18){
+                await ctx.reply('Тебе должно быть больше 18.')
+                break
               }
               ctx.session.age = age
               ctx.session.step = "askSex"
@@ -59,15 +54,7 @@ export async function userRegistration(ctx) {
                 ctx.reply('Просто выбери',{reply_markup: sexKeyboard})
                 return
               } else {
-                if (text=='👕'){ctx.session.sex = true}
-                if(text == '👚'){ctx.session.sex = false}
-                if(ctx.session.editing){
-                  await userRepo.update({ chatId }, { sex: ctx.session.sex })
-                  ctx.session.step = null;
-                  await imgUser(ctx)
-                  ctx.reply(await msgUser(ctx), {reply_markup:mainInfoKeyboard})
-                  return
-                }
+                ctx.session.sex = sexTypes[text]
                 ctx.session.step = 'askSexSearch'
                 ctx.reply('Кто Тебе интересен?',{reply_markup: sexKeyboard})
               }
@@ -77,21 +64,14 @@ export async function userRegistration(ctx) {
                 ctx.reply('Просто выбери',{reply_markup: sexKeyboard})
                 return
               } else {
-                (text=='👕')?ctx.session.sexSearch = true: void 0;
-                (text == '👚')?ctx.session.sexSearch = false: void 0;
-                if(ctx.session.editing){
-                  await userRepo.update({ chatId }, { sexSearch: ctx.session.sexSearch })
-                  ctx.session.step = null;
-                  await imgUser(ctx)
-                  ctx.reply(await msgUser(ctx), {reply_markup:mainInfoKeyboard})
-                  return
-                }
+                ctx.session.sex = sexTypes[text]
                 ctx.session.step = 'askPhotos'
                 user.name = ctx.session.name;
                 user.age = ctx.session.age;
                 user.sex = ctx.session.sex;
                 user.sexSearch = ctx.session.sexSearch;
                 await AppDataSource.manager.save(user)
+
                 ctx.reply('Отправь фотографии')
               }
               break;
@@ -102,10 +82,7 @@ export async function userRegistration(ctx) {
                     await ctx.reply("Отлично! Давай продолжим!");
                     await userRepo.update({ chatId }, { inSearch: false })
                     ctx.session.step = null
-                    imgUser(ctx)
-                    ctx.reply(await msgUser(ctx), {
-                        reply_markup: bioKeyboard1
-                    })
+                    await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
                     ctx.session.editing = true
                   } else {
                     await userRepo.update({ chatId }, { inSearch: true })
@@ -116,8 +93,9 @@ export async function userRegistration(ctx) {
                 break;
     
             default:
-              await ctx.reply("Я не понял. Напиши /start");
+              await ctx.reply("Я не понял. Напиши /help");
           }
+          return ctx
 
     
 }

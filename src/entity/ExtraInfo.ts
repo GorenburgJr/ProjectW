@@ -8,34 +8,34 @@ export class extraInfo {
     chatId: string
 
     @Column({ type: "int", default: null })
-    zodiacsign: number
+    zodiac: number
 
     @Column({ type: "int", default: null })
     education: number
 
     @Column({ type: "int", default: null })
-    familyplans: number
+    familyPlans: number
 
     @Column({ type: "int", default: null })
-    perstype: number
+    persType: number
 
     @Column({ type: "int", default: null })
-    commtype: number
+    commType: number
 
     @Column({ type: "int", default: null })
-    lovelang: number
+    loveLang: number
 
     @Column({ type: "varchar", default: null })
-    text: string
+    bio: string
 
     @Column({ type: "varchar", default: null })
-    languages: string
+    language: string
 
     @Column({ type: "int", default: null })
     height: number
 
     @Column({ type: "int", default: null })
-    mysearch: number
+    mySearch: number
 
     @Column({ type: "varchar", default: null })
     work: string
@@ -56,10 +56,10 @@ export class extraInfo {
     food: number
 
     @Column({ type: "int", default: null })
-    socmedia: number
+    socMedia: number
 
     @Column({ type: "int", default: null })
-    nightlive: number
+    nightLive: number
 
     @OneToOne(() => User, user => user.extraInfo, {
         onDelete: 'CASCADE'

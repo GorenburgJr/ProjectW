@@ -9,8 +9,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { photoKeyboard } from "./keyboards";
 
 dotenv.config()
-async function downloadingUserPhoto (ctx) {
-    if(ctx.session.editingComponent == 'photos' || ctx.session.step == 'askPhotos'){
+export async function downloadingUserPhoto (ctx) {
+    if(ctx.session.editingComponent == 'photo' || ctx.session.step == 'askPhotos'){
         try {
             const photos = ctx.message.photo;
             const biggestPhoto = photos[photos.length - 1];
@@ -44,14 +44,14 @@ async function downloadingUserPhoto (ctx) {
                 images = new UserImages();
                 images.chatId = chatId;
                 images.user = user;
-                images.photoFilenames = [];
+                images.photoFileNames = [];
                 }
 
-                if (images.photoFilenames.length < 5) {// Добавляем фото(проверяем на лимит 5)
-                images.photoFilenames.push(fileName);
+                if (images.photoFileNames.length < 4) {// Добавляем фото(проверяем на лимит 5)
+                images.photoFileNames.push(fileName);
                 await userPhotoRepo.save(images);
                 } else {
-                ctx.reply("Максимум 5 фото");
+                ctx.reply("Максимум 5 фото", {reply_markup: photoKeyboard});
                 return
                 }
 
@@ -73,5 +73,40 @@ async function downloadingUserPhoto (ctx) {
     }
 }
 
+export async function deletingUserPhoto(ctx, photoIndex) {
+    const chatId = ctx.chat.id;
+    const userImagesRepo = AppDataSource.getRepository(UserImages);
+    const images = await userImagesRepo.findOneBy({ chatId });
+    if (images.photoFileNames.length === 1) {
+        await ctx.reply('Нужно как минимум 1 фотография');
+        ctx.session.editingComponent = 'mainInfo';
+        return
+      }
 
-export {downloadingUserPhoto}
+    const user = await userImagesRepo.findOneBy({ chatId });
+
+    if (!user || !user.photoFileNames || user.photoFileNames.length <= photoIndex) {
+        await ctx.reply('Фотография не найдена');
+        return;
+    }
+
+    const photoName = user.photoFileNames[photoIndex];
+    const photoPath = path.join(__dirname, '..', 'photos', photoName); // путь к папке с фото
+
+    try {
+    // Удаление файла
+        await fs.unlink(photoPath, (err) => {
+            if (err) throw err;
+        });
+    } catch (err) {
+        console.error('Ошибка при удалении файла:', err);
+        await ctx.reply('Не удалось удалить фото с хранилища');
+        return;
+    }
+
+  // Удаление имени из массива и обновление в БД
+    user.photoFileNames.splice(photoIndex, 1);
+    await userImagesRepo.update({ chatId }, { photoFileNames: user.photoFileNames });
+    
+    return
+}

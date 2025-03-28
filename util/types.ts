@@ -30,6 +30,6 @@ export const commTypes = ['Много переписываюсь',"Общаюс�
 
 export const nightLiveTypes = ['Жаворонок','Сова','Что-то среднее']
 
-export const sexTypes: Record<string, string> = {true: '👕',false: '👚'}
+export const sexTypes= ['👚', '👕']
 
 export const booleanTypes:Record<string, string> = {true: 'Да',false: 'Нет'}

@@ -8,7 +8,7 @@ export class UserImages {
     chatId: string
 
     @Column("text", { array: true })
-  photoFilenames: string[];
+  photoFileNames: string[];
 
   @OneToOne(() => User, user => user.userimages, {
     onDelete: 'CASCADE'
