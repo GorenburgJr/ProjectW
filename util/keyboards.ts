@@ -266,4 +266,12 @@ export const fivePhotoKeyboard = new InlineKeyboard()
     .text('5️⃣', '4').row()
     .text('Назад⏪', 'back');
 
+export const chooseUser = new InlineKeyboard()
+    .text('👍', 'like')
+    .text('👎', 'dislike').row()
+    .text('💌', 'letter')
+    .text('📖', 'showBio')
+    .text('🔙', 'fromBack')
+    .text('🔴', 'stopChoosing')
+
 export const shareLocation = new Keyboard().requestLocation('📍').oneTime(true).resized()

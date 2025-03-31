@@ -54,7 +54,7 @@ export async function userRegistration(ctx) {
                 ctx.reply('Просто выбери',{reply_markup: sexKeyboard})
                 return
               } else {
-                ctx.session.sex = sexTypes[text]
+                ctx.session.sex = sexTypes.indexOf(text)
                 ctx.session.step = 'askSexSearch'
                 ctx.reply('Кто Тебе интересен?',{reply_markup: sexKeyboard})
               }
@@ -64,7 +64,7 @@ export async function userRegistration(ctx) {
                 ctx.reply('Просто выбери',{reply_markup: sexKeyboard})
                 return
               } else {
-                ctx.session.sex = sexTypes[text]
+                ctx.session.sexSearch = sexTypes.indexOf(text)
                 ctx.session.step = 'askPhotos'
                 user.name = ctx.session.name;
                 user.age = ctx.session.age;

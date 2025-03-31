@@ -19,6 +19,7 @@ import { UserImages } from "../src/entity/UserImages"
 import * as fs from "fs";
 import * as path from 'path'
 import {InputFile} from 'grammy'
+import { chooseUser } from "../util/keyboards"
 
 export async function choosingProf1(chatID) {
     const chatId = chatID
@@ -88,16 +89,20 @@ export async function choosingProf1(chatID) {
     return messageText
 }
 
-export async function choosingProf(ctx, chatID, chtid) {
-    const chatId = chatID;
-    const userimages = await AppDataSource.manager.findOneBy(UserImages, { chatId });
+export async function choosingProf(ctx, findedUser, toSendId) {
+    const findedId = findedUser.user.chatId
+    const userimages = await AppDataSource.manager.findOneBy(UserImages, { chatId: findedId });
   
-    if (!userimages || !userimages.photoFileNames?.length) {
-    //   await ctx.reply("Фотографии не найдены");
-      return;
-    }
-    const user = await AppDataSource.manager.findOneBy(User, {chatId: chatID})
-    const message = `${user.name} ${user.age}`
+    const findedDBUser = await AppDataSource.manager.findOneBy(User, {chatId: findedId})
+    findedUser.distance = Math.ceil(findedUser.distance)
+
+    function smartRound(value: number): number {
+        if (value < 500) {
+          return 500;
+        }
+        return Math.ceil(value / 500) * 500;
+      }
+    const message = `${findedDBUser.name}, ${findedDBUser.age}, Расстояние: ${smartRound(findedUser.distance)/1000} км.`
     const folderPath = path.join(__dirname, "..", "photos");
   
     const mediaGroup = userimages.photoFileNames.map((name, index) => {
@@ -107,11 +112,11 @@ export async function choosingProf(ctx, chatID, chtid) {
         media: new InputFile(fs.createReadStream(fullPath)),
         ...(index === 0 && {
           caption: message,
-        //   reply_markup: keyboard, // reply_markup — только в первом фото
+          reply_markup: chooseUser, // reply_markup — только в первом фото
         }),
       };
     });
-    ctx.chat.chat_id = chtid
-    await ctx.api.sendMediaGroup(chtid, mediaGroup)
+
+    await ctx.api.sendMediaGroup(toSendId, mediaGroup)
     // await ctx.reply(message, {reply_markup:keyboard});
   }

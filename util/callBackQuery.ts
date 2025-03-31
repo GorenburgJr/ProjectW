@@ -17,7 +17,6 @@ import { bioKeyboard1,
         foodKeyboard,
         socMediaKeyboard,
         nightLiveKeyboard,
-        sexKeyboard,
         shareLocation,
         twoPhotoKeyboard,
         threePhotoKeyboard,
@@ -25,7 +24,6 @@ import { bioKeyboard1,
         onePhotoKeyboard,
         settingsBioKeyboard2,
         settingsBioKeyboard1,
-        yesNoKeyboard,
         yesNoInKeyboard,
         sexInKeyboard,
         fourPhotoKeyboard,
@@ -39,9 +37,6 @@ import { SearchSettings } from '../src/entity/SearchSetting';
 import { findUsersNearby} from './search';
 import { msgSearch } from '../common/userSearchProfile';
 import { deletingUserPhoto } from './workWithPhoto';
-import { Location } from '../src/entity/Location';
-import { choosingProf } from '../common/choosingProfile';
-import { choosingProf1 } from '../common/choosingProfile';
 dotenv.config()
 const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
 
@@ -52,7 +47,6 @@ export async function CALLBACK (ctx) {
     const data = ctx.callbackQuery.data;
     const extraInfoRepo = AppDataSource.getRepository(extraInfo)
     const userRepo = AppDataSource.getRepository(User)
-    const userPhotoRepo = AppDataSource.getRepository(UserImages)
     const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
     let user = await AppDataSource.manager.findOneBy(User, { chatId })
     const setComponent = (key: string) => {
@@ -235,7 +229,6 @@ export async function CALLBACK (ctx) {
                 case 'radius':
                 case 'age':
                     ctx.deleteMessage()
-                    ctx.reply(await msgSearch(ctx) ,{reply_markup: settingsBioKeyboard1})
                     break;
                 
                 default:
@@ -521,14 +514,8 @@ export async function CALLBACK (ctx) {
             
             // === ПОИСК ===
             case 'startSearch':
-                const userPoint = await AppDataSource.manager.findOneBy(Location, { chatId})
-                const userSearchSettings = await AppDataSource.manager.findOneBy(SearchSettings, { chatId})
+                console.log(await findUsersNearby(user))
 
-              const nearby = await findUsersNearby(userPoint.location.coordinates[1], userPoint.location.coordinates[0], userSearchSettings.radius, user.chatId);
-              
-              nearby.forEach(async element => {
-                await choosingProf(ctx, element.user.chatId, user.chatId)
-              });
 
               break;
 

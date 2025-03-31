@@ -30,7 +30,7 @@ export async function msgSearch(ctx) {
     if(typeof(settings.bio) == 'boolean'){
       messageText += `\nНаличие био: ${booleanTypes[settings.bio.toString()]}`
     }
-    if(settings.language){
+    if(typeof(settings.language) == 'boolean'){
       messageText += `\nНаличие языков📖: ${booleanTypes[String(settings.language)]}`
     }
     if(typeof(settings.zodiac) == 'number'){
@@ -55,10 +55,10 @@ export async function msgSearch(ctx) {
     if(typeof(settings.loveLang) == 'number'){
         messageText += `\nЯзык любви: ${loveLangTypes[settings.loveLang]}👻`
     }
-    if(typeof(settings.work) == 'string'){
+    if(typeof(settings.work) == 'boolean'){
         messageText += `\nНаличие работы: ${booleanTypes[String(settings.work)]}🏭`
     }
-    if(typeof(settings.pets) == 'string'){
+    if(typeof(settings.pets) == 'boolean'){
         messageText += `\nНаличие питомца(ев): ${booleanTypes[String(settings.pets)]}🐈`
     }
     if(typeof(settings.alcohol) == 'number'){
