@@ -10,7 +10,7 @@ import { photoKeyboard } from "./keyboards";
 
 dotenv.config()
 export async function downloadingUserPhoto (ctx) {
-    if(ctx.session.editingComponent == 'photo' || ctx.session.step == 'askPhotos'){
+    if(ctx.session.editingComponent == 'photo' || ctx.session.activeStepName == 'askPhotos'){
         try {
             const photos = ctx.message.photo;
             const biggestPhoto = photos[photos.length - 1];

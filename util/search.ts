@@ -30,7 +30,7 @@ export async function findUsersNearby(user) {
   const query = userRepository
     .createQueryBuilder("user")
     .innerJoin("user.location", "location")
-    .innerJoin("user.extraInfo", "extraInfo")
+    .innerJoin("user.ExtraInfo", "ExtraInfo")
     .addSelect(
       `
       ST_Distance(
@@ -66,28 +66,29 @@ export async function findUsersNearby(user) {
   for (const field of filterFields) {
     const value = searchSettings[field];
     if (value !== null && value !== undefined) {
-      query.andWhere(`extraInfo.${field} = :${field}`, { [field]: value });
+      query.andWhere(`ExtraInfo.${field} = :${field}`, { [field]: value });
     }
   }
 
-  // высота — отдельная история (массив диапазона)
+
   if (Array.isArray(searchSettings.height) && searchSettings.height.length === 2) {
     const [minHeight, maxHeight] = searchSettings.height;
-    query.andWhere("extraInfo.height BETWEEN :minHeight AND :maxHeight", { minHeight, maxHeight });
+    query.andWhere("ExtraInfo.height BETWEEN :minHeight AND :maxHeight", { minHeight, maxHeight });
   }
 
   // булевы поля — bio, pets, work, language (если true — значит, фильтруем на not null)
   const booleanFields = ["bio", "pets", "work", "language"];
   for (const field of booleanFields) {
     if (searchSettings[field] === true) {
-      query.andWhere(`extraInfo.${field} IS NOT NULL`);
+      query.andWhere(`ExtraInfo.${field} IS NOT NULL`);
     }
   }
 
   const { entities: users, raw } = await query.orderBy("distance", "ASC").getRawAndEntities();
 
+  // return users.map((user, index) => ([user.chatId,Math.round(Number(raw[index].distance)) ]));
   return users.map((user, index) => ({
-    user,
-    distance: Number(raw[index].distance),
-  }));
+    chatId: user.chatId,
+    distance: Math.round(Number(raw[index].distance))
+  }))
 }

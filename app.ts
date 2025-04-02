@@ -2,7 +2,7 @@ import { Bot as GrammyBot, GrammyError, HttpError, Context, session, SessionFlav
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./src/data-source";
 import { User } from "./src/entity/User";
-import { extraInfo } from "./src/entity/ExtraInfo";
+import { ExtraInfo } from "./src/entity/ExtraInfo";
 import {bioKeyboard1, bioKeyboard2, yesNoKeyboard, mainInfoKeyboard, settingsBioKeyboard1} from './util/keyboards'
 import { CALLBACK } from "./util/callBackQuery";
 import {imgUser, msgUser} from './common/userProfile'
@@ -13,24 +13,31 @@ import { SearchSettings } from "./src/entity/SearchSetting";
 import { downloadingUserLocations } from "./util/workWithLocation";
 import { userRegistration } from "./common/userRegistration";
 import { checkUserExist } from "./util/existCheck";
-import { text } from "stream/consumers";
+import { Letter } from "./src/entity/Letters";
+import { ProfileStack } from "./src/entity/profileStack";
 dotenv.config();
 
 interface FormSession {
-  step: "askConsent" | "askName" | "askAge" | 'askSex'| 'askSexSearch'| 'askPhotos' | 'askLocation' | "extraInfo"  |null;
-  editingComponent?: null | 'mainInfo' | 'name' | 'age' | 'sex' | 'sexSearch' | 'location' | 'photo' |'language' | 'zodiac' | 'education' | 'familyPlans' | 'persType' | 'commType' | 'loveLang' | 'bio' | 'height' | 'mySearch' | 'work' | 'pets' | 'alcohol' | 'smoke' | 'gym' | 'food' | 'socMedia' | 'nightLive'
+  activeStepName: "askConsent" | "askName" | "askAge" | 'askSex'| 'askSexSearch'| 'askPhotos' | 'askLocation' | "ExtraInfo"  |null;
+  editingComponent?: null | 'mainInfo' | 'name' | 'age' | 'sex' | 'sexSearch' | 'location' | 'photo' | 'language' | 'zodiac' | 
+  'education' | 'familyPlans' | 'persType' | 'commType' | 'loveLang' | 'bio' | 'height' | 'mySearch' | 'work' | 'pets' | 'alcohol' 
+  | 'smoke' | 'gym' | 'food' | 'socMedia' | 'nightLive'
   name?: string;
   age?: number;
   sex?: boolean;
   sexSearch?: boolean;
+  stackIndex?: number;
   binary: 0;
-  settingComponent?: null |  'age' | 'radius' | 'language' | 'zodiac' | 'height' | 'persType' | 'mySearch' |'education' | 'familyPlans' | 'bio' | 'loveLang' | 'work' | 'pets' | 'alcohol' | 'smoke' | 'gym' | 'food' | 'socMedia' | 'commType' | 'nightLive'
+  letter?: boolean;
+  searchSettingComponent?: null |  'age' | 'radius' | 'language' | 'zodiac' | 'height' | 
+  'persType' | 'mySearch' |'education' | 'familyPlans' | 'bio' | 'loveLang' | 'work' | 
+  'pets' | 'alcohol' | 'smoke' | 'gym' | 'food' | 'socMedia' | 'commType' | 'nightLive'
 }
 
 
 type MyContext = Context & SessionFlavor<FormSession>;
 
-const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN as string);
+const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN);
 
 
 
@@ -38,19 +45,19 @@ AppDataSource.initialize()
   .then(async () => {
     bot.use(
       session({
-        initial: (): FormSession => ({ step: null  , binary: 0}),
+        initial: (): FormSession => ({ activeStepName: null  , binary: 0}),
       })
     );
     
     const userRepo = AppDataSource.getRepository(User)
-    const extraInfoRepo = AppDataSource.getRepository(extraInfo)
+    const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
     bot.command("start", async (ctx) => {
         const userExist = await checkUserExist(ctx)
         if (!userExist) {
-            ctx.session = { step: "askConsent",editingComponent: null, binary: 0};
+            ctx.session = { activeStepName: "askConsent",editingComponent: null, binary: 0};
             await ctx.reply("Привет! Твоя анкета не была найдена. Давай создадим её (Да/Нет)",{reply_markup: yesNoKeyboard} );
         } else {
-            ctx.session.step = null
+            ctx.session.activeStepName = null
             await ctx.reply("У вас уже пройдена регистрация.\n\nЕсли вы желаете изменить анкету, наберите\n /edit\n \nЕсли хотите продолжить поиск наберитe\n /search");
         }
     })
@@ -88,49 +95,64 @@ AppDataSource.initialize()
     bot.on('callback_query', async (ctx) => {
         const chatId = String(ctx.chat.id)
         let user = await userRepo.findOneBy({ chatId })
-        const extraInfRepo = AppDataSource.getRepository(extraInfo);
+        const extraInfRepo = AppDataSource.getRepository(ExtraInfo);
         let extra = await extraInfRepo.findOneBy({ chatId })
         
         if (!extra) {
-          const extra = new Location();
-          extra.chatId = user.chatId
-          extra.user = user;
+          const extra = new ExtraInfo(user.chatId, user)
           await extraInfRepo.save(extra) 
         }
 
-        ctx.answerCallbackQuery('Уже работаю!')
+        ctx.answerCallbackQuery('Секундочку!')
         await CALLBACK(ctx)
         
     })
     
-    bot.on('message:photo', async (ctx) => {
-      await downloadingUserPhoto(ctx)
-      return
-    })
+    bot.on('message:photo', async (ctx) => {await downloadingUserPhoto(ctx)})
 
     bot.on("message:text", async (ctx) => {
-      if(ctx.session.step === 'askLocation' || ctx.session.editingComponent === 'location'){
+      const chatId = String(ctx.chat.id);
+      if(ctx.session.activeStepName === 'askLocation' || ctx.session.editingComponent === 'location'){
         ctx.reply("Отпрвавь мне Гео")
         return
       }
-      if(ctx.session.step === 'askPhotos' || ctx.session.editingComponent === 'photo'){
+      if(ctx.session.activeStepName === 'askPhotos' || ctx.session.editingComponent === 'photo'){
         ctx.reply("Отпрвавь мне фото")
         return
       }
-      const chatId = String(ctx.chat.id);
+      if(ctx.session.letter === true){
+        if(ctx.message.text.length > 100){
+          ctx.reply('Напиши короче')
+          return
+        }
+        const toUser = await AppDataSource.manager.findOneBy(ProfileStack, {chatId: chatId})
+        const checkLetter = await AppDataSource.manager.findOneBy(Letter, {fromUser: chatId, toUser:toUser.stack[ctx.session.stackIndex].chatId})
+        if(checkLetter){
+          await AppDataSource.manager.update(Letter, {fromUser: chatId, toUser:toUser[ctx.session.stackIndex].chatId}, {text: ctx.message.text})
+        }
+        else {
+          const letter = new Letter()
+          letter.fromUser = chatId
+          letter.toUser = toUser.stack[ctx.session.stackIndex].chatId
+          letter.text = ctx.message.text
+          letter.distance = toUser.stack[ctx.session.stackIndex].distance
+          await AppDataSource.manager.save(letter)
+        }
+        ctx.session.letter = undefined
+        return ctx
+      }
+      
       let user = await AppDataSource.manager.findOneBy(User, { chatId });
       const settings = await AppDataSource.manager.findOneBy(SearchSettings, { chatId })
       ctx.message.text = ctx.message.text.trim();
       const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
       
       if (!user) {
-        user = new User();
+        user = new User(chatId);
         user.chatId = chatId;
       }
 
-      const extra = new extraInfo()
-      extra.chatId = user.chatId
-      extra.user = user
+      const extra = new ExtraInfo(user.chatId, user)
 
       const maxLengths = {
         language: 35,
@@ -140,7 +162,7 @@ AppDataSource.initialize()
         name: 15
       };
 
-      switch(ctx.session.settingComponent){
+      switch(ctx.session.searchSettingComponent){
         case 'height':
           const height = Number(ctx.message.text)
           if (isNaN(height)) {
@@ -166,7 +188,7 @@ AppDataSource.initialize()
             await AppDataSource.manager.save(settings)
             ctx.session.binary = 0
             ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
-            ctx.session.settingComponent = null
+            ctx.session.searchSettingComponent = null
             return ctx.session
           }
         case 'age':
@@ -190,7 +212,7 @@ AppDataSource.initialize()
             settings.age[ctx.session.binary] = Number(ctx.message.text)
             await AppDataSource.manager.save(settings)
             ctx.session.binary = 0
-            ctx.session.settingComponent = null
+            ctx.session.searchSettingComponent = null
             ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
             return ctx
 
@@ -211,7 +233,7 @@ AppDataSource.initialize()
           radius *= 1000
           await searchSettingsRepo.update({ chatId }, {radius: radius})
           await ctx.reply(await msgSearch(ctx), {reply_markup:settingsBioKeyboard1})
-          ctx.session.settingComponent = null
+          ctx.session.searchSettingComponent = null
           return ctx
       }
 
@@ -224,7 +246,7 @@ AppDataSource.initialize()
             await ctx.reply('Напиши короче');
             return;
           }
-          await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: ctx.message.text });
+          await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: ctx.message.text });
           await imgUser(ctx,await msgUser(ctx), ctx.session.editingComponent === 'language' ||  ctx.session.editingComponent === 'bio' ? bioKeyboard1 : bioKeyboard2);
           break;
 
@@ -234,7 +256,7 @@ AppDataSource.initialize()
             await ctx.reply('Напиши цифру');
             return;
           }
-          await extraInfoRepo.update({ chatId }, { height });
+          await ExtraInfoRepo.update({ chatId }, { height });
           await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
           break;
           case 'name':
@@ -259,15 +281,14 @@ AppDataSource.initialize()
           default:
             break;
         }
-      if(ctx.session.editingComponent != null){
+      if(ctx.session.editingComponent !== null){
       ctx.session.editingComponent = null;
       return
       }
-      if(ctx.session.step != null){
+      if(ctx.session.activeStepName !== null){
         await userRegistration(ctx)
         return
       }
-
         ctx.reply('Я не понял. \nНапиши /help')
     })
 

@@ -2,7 +2,7 @@ import { Entity,  Column, OneToOne, PrimaryColumn,JoinColumn } from "typeorm"
 import { User } from "./User"
 
 @Entity()
-export class extraInfo {
+export class ExtraInfo {
 
     @PrimaryColumn({ type: "bigint" })
     chatId: string
@@ -61,9 +61,15 @@ export class extraInfo {
     @Column({ type: "int", default: null })
     nightLive: number
 
-    @OneToOne(() => User, user => user.extraInfo, {
+    @OneToOne(() => User, user => user.ExtraInfo, {
         onDelete: 'CASCADE'
       })
     @JoinColumn({ name: 'chatId', referencedColumnName: 'chatId' })
     user: User;
+
+    constructor(chatId: string, user ){
+      this.chatId = chatId
+      this.user = user
+
+    }
 }

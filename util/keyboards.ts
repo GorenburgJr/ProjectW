@@ -266,11 +266,19 @@ export const fivePhotoKeyboard = new InlineKeyboard()
     .text('5️⃣', '4').row()
     .text('Назад⏪', 'back');
 
-export const chooseUser = new InlineKeyboard()
+export const chooseUserKeyboard = new InlineKeyboard()
     .text('👍', 'like')
     .text('👎', 'dislike').row()
-    .text('💌', 'letter')
-    .text('📖', 'showBio')
+    .text('💌', 'letter').row()
+    .text('Вся информация📖 (-10⭐️)', 'showBio').row()
+    .text('🔙', 'fromBack')
+    .text('🔴', 'stopChoosing')
+
+    export const chooseUserExtraKeyboard = new InlineKeyboard()
+    .text('👍', 'like')
+    .text('👎', 'dislike').row()
+    .text('💌', 'letter').row()
+    .text('Скрыть информацию📖', 'closeBio').row()
     .text('🔙', 'fromBack')
     .text('🔴', 'stopChoosing')
 

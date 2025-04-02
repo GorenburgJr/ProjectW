@@ -1,5 +1,4 @@
 import { Bot as GrammyBot , InlineKeyboard } from 'grammy'
-import * as dotenv from "dotenv";
 import { bioKeyboard1, 
         bioKeyboard2, 
         cancelBackKeyboard,
@@ -27,31 +26,36 @@ import { bioKeyboard1,
         yesNoInKeyboard,
         sexInKeyboard,
         fourPhotoKeyboard,
+        chooseUserKeyboard,
+        chooseUserExtraKeyboard,
 } from './keyboards';
 import{AppDataSource} from '../src/data-source'
 import { User } from '../src/entity/User';
 import { imgUser, msgUser } from '../common/userProfile';
-import { extraInfo } from '../src/entity/ExtraInfo';
+import { ExtraInfo } from '../src/entity/ExtraInfo';
 import { UserImages } from '../src/entity/UserImages';
 import { SearchSettings } from '../src/entity/SearchSetting';
 import { findUsersNearby} from './search';
 import { msgSearch } from '../common/userSearchProfile';
 import { deletingUserPhoto } from './workWithPhoto';
-dotenv.config()
-const bot = new GrammyBot(process.env.BOT_API_TOKEN as string)
+import { ProfileStack } from '../src/entity/profileStack';
+import { choosingProfExtraInfo, choosingProfPhoto, choosingProfText, smartRound } from '../common/choosingProfile';
+import { Reactions } from '../src/entity/Reactions';
+import { Letter } from '../src/entity/Letters';
+import { escapeMarkdownV2 } from './escapeMarkdownV2';
 
 
 
 export async function CALLBACK (ctx) {
     const chatId = String(ctx.chat.id)
     const data = ctx.callbackQuery.data;
-    const extraInfoRepo = AppDataSource.getRepository(extraInfo)
+    const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
     const userRepo = AppDataSource.getRepository(User)
     const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
     let user = await AppDataSource.manager.findOneBy(User, { chatId })
     const setComponent = (key: string) => {
             if (user.inSearch) {
-              ctx.session.settingComponent = key;
+              ctx.session.searchSettingComponent = key;
             } else {
               ctx.session.editingComponent = key;
             }
@@ -64,7 +68,7 @@ export async function CALLBACK (ctx) {
             case 'mySearch':
             case 'education':
             case 'familyPlans':
-              await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: Number(data) });
+              await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: Number(data) });
               await ctx.editMessageText(await msgUser(ctx), { reply_markup: bioKeyboard1 });
               break;
           
@@ -76,13 +80,14 @@ export async function CALLBACK (ctx) {
             case 'socMedia':
             case 'commType':
             case 'nightLive':
-              await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: Number(data) });
+              await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: Number(data) });
               await ctx.editMessageText(await msgUser(ctx), { reply_markup: bioKeyboard2 });
               break;
           
             case 'photo':
                     await deletingUserPhoto(ctx, Number(data)); //отправляем запрос на удаление фото
                     await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)// подгружаем старое сообщение
+                    ctx.session.editingComponent = 'mainInfo'
                     break;
             case 'sex':
             case 'sexSearch':
@@ -95,14 +100,14 @@ export async function CALLBACK (ctx) {
               break;
           }
           
-        switch (ctx.session.settingComponent) {
+        switch (ctx.session.searchSettingComponent) {
             case 'zodiac':
             case 'persType':
             case 'mySearch':
             case 'education':
             
             await searchSettingsRepo.update({ chatId }, {
-                [ctx.session.settingComponent]: Number(data),
+                [ctx.session.searchSettingComponent]: Number(data),
             });
             await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard1 });
             break;
@@ -117,17 +122,17 @@ export async function CALLBACK (ctx) {
             case 'commType':
             case 'nightLive':
             await searchSettingsRepo.update({ chatId }, {
-                [ctx.session.settingComponent]: Number(data),
+                [ctx.session.searchSettingComponent]: Number(data),
             });
             await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard2 });
             break;
             case 'bio':
                 switch(data){
                     case '0':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.settingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false,})
                         break;
                     case '1':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.settingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false,})
                         break;
                 }
                 await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard1 })
@@ -136,10 +141,10 @@ export async function CALLBACK (ctx) {
             case 'pets':
                 switch(data){
                     case '0':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.settingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false,})
                         break;
                     case '1':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.settingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false,})
                         break;
                 }
                 await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard2 })
@@ -148,7 +153,7 @@ export async function CALLBACK (ctx) {
             break;
         }
       
-        ctx.session.settingComponent = null
+        ctx.session.searchSettingComponent = null
         ctx.session.editingComponent = null
         return ctx
 }
@@ -201,7 +206,7 @@ export async function CALLBACK (ctx) {
                     break;
             }
 
-            switch (ctx.session.settingComponent) {
+            switch (ctx.session.searchSettingComponent) {
                 case 'persType':
                 case 'zodiac':
                 case 'mySearch':
@@ -235,7 +240,7 @@ export async function CALLBACK (ctx) {
                     break;
             }
 
-        ctx.session.step = null
+        ctx.session.activeStepName = null
         ctx.session.editingComponent = null
         ctx.session.searchSetting = null
         break;
@@ -247,13 +252,13 @@ export async function CALLBACK (ctx) {
                 case 'mySearch':
                 case 'education':
                 case 'familyPlans':
-                    await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
+                    await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
                     ctx.editMessageText(await msgUser(ctx), {reply_markup:bioKeyboard1})
                     break;
                 case 'height':
                 case 'language':
                 case 'bio':
-                    await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
+                    await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
                     await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
                     break;
                 case 'loveLang':
@@ -264,17 +269,17 @@ export async function CALLBACK (ctx) {
                 case 'socMedia':    
                 case 'commType':
                 case 'nightLive':
-                    await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
+                    await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
                     ctx.editMessageText(await msgUser(ctx), {reply_markup:bioKeyboard2})
                     break;
                 case 'work':
                 case 'pets':
                     ctx.deleteMessage()
-                    await extraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
+                    await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: null })
                     await imgUser(ctx,await msgUser(ctx), bioKeyboard2)
                     break;
             }
-            switch (ctx.session.settingComponent){
+            switch (ctx.session.searchSettingComponent){
                 case 'language':
                 case 'zodiac':
                 case 'height': 
@@ -283,7 +288,7 @@ export async function CALLBACK (ctx) {
                 case 'education':
                 case 'familyPlans':
                 case 'bio':
-                    await searchSettingsRepo.update({ chatId }, { [ctx.session.settingComponent]: null })
+                    await searchSettingsRepo.update({ chatId }, { [ctx.session.searchSettingComponent]: null })
                     ctx.editMessageText(await msgSearch(ctx), {reply_markup:settingsBioKeyboard1})
                     break;
                 case 'loveLang':
@@ -296,7 +301,7 @@ export async function CALLBACK (ctx) {
                 case 'socMedia':    
                 case 'commType':
                 case 'nightLive':
-                    await searchSettingsRepo.update({ chatId }, { [ctx.session.settingComponent]: null })
+                    await searchSettingsRepo.update({ chatId }, { [ctx.session.searchSettingComponent]: null })
                     ctx.editMessageText(await msgSearch(ctx), {reply_markup:settingsBioKeyboard2})
                     break;
             }
@@ -418,7 +423,7 @@ export async function CALLBACK (ctx) {
               break;
             // === КНОПКИ В ПОИСКЕ ===
             case 'radius':
-                ctx.session.settingComponent = 'radius';
+                ctx.session.searchSettingComponent = 'radius';
                 await ctx.reply('Напиши радиус в КМ', {reply_markup: new InlineKeyboard().text('Назад','back')})
                 break;
             // === ОСНОВНЫЕ ПЕРЕКЛЮЧАТЕЛИ ===
@@ -446,7 +451,7 @@ export async function CALLBACK (ctx) {
               if(ctx.session.editingComponent === 'age'){
                 await ctx.reply('Напиши возраст', { reply_markup: new InlineKeyboard().text('Назад', 'back') })
               }
-              if(ctx.session.settingComponent === 'age'){
+              if(ctx.session.searchSettingComponent === 'age'){
                 await ctx.reply('Напиши нижнюю границу возраста', { reply_markup: new InlineKeyboard().text('Назад', 'back') })
               }
               break;
@@ -467,10 +472,12 @@ export async function CALLBACK (ctx) {
               break;
         
             case 'stopSearching':
+              await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
               await userRepo.update({ chatId }, { inSearch: false });
               break;
         
             case 'continueSearching':
+              await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
               await userRepo.update({ chatId }, { inSearch: true });
               break;
         
@@ -506,19 +513,139 @@ export async function CALLBACK (ctx) {
               if (ctx.session.editingComponent === 'photo') {
                 await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
                 ctx.session.editingComponent = 'mainInfo';
-              } else if (ctx.session.step === 'askPhotos') {
+              } else if (ctx.session.activeStepName === 'askPhotos') {
                 await ctx.reply('Отправь локацию', { reply_markup: shareLocation });
-                ctx.session.step = 'askLocation';
+                ctx.session.activeStepName = 'askLocation';
               }
               break;
             
             // === ПОИСК ===
-            case 'startSearch':
-                console.log(await findUsersNearby(user))
+            case 'startSearch':{
+              let profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+                profileStack = new ProfileStack()
+                profileStack.chatId = chatId
+                profileStack.stack = []
+                const arr = await findUsersNearby(user)
+                arr.forEach(element => {
+                  profileStack.stack.push(element)
+                });
+              await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: null})
+              await AppDataSource.manager.save(profileStack)
+              const letters = await AppDataSource.manager.findBy(Letter, {toUser: chatId})
+              if(letters.length>= 1){
+                letters.forEach(async element => {
+                  const fromUser = await AppDataSource.manager.findOneBy(User, {chatId: element.fromUser})
+                  const distance = smartRound(element.distance)
+                  const name = escapeMarkdownV2(fromUser.name)
+                  const userName = escapeMarkdownV2(fromUser.userName)
+                  const age = escapeMarkdownV2(fromUser.age.toString())
+                  const dist = escapeMarkdownV2(distance.toString())
+                  const message = escapeMarkdownV2(element.text)
+                  ctx.reply(`Сообщение от [${name}](t.me/${userName}), ${age}, ${dist}км\\.\\: ${message}`, {
+                    parse_mode: 'MarkdownV2',
+                    disable_web_page_preview: true,
+                    reply_markup: new InlineKeyboard().text('Прододжить', 'startSearch')
+                  });
 
-
+                });
+                await AppDataSource.manager.delete(Letter, {toUser: chatId})
+                break
+              }
+              ctx.reply(`По твоему запросу было найдено ${arr.length} пользователей. Вот первый из них`)
+              await choosingProfPhoto(ctx, profileStack.stack[0].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[0].chatId, profileStack.stack[0].distance), {reply_markup: chooseUserKeyboard})
+              ctx.session.stackIndex = 0;
+              break;}
+            case 'like':{
+              const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              if(typeof(ctx.session.stackIndex) !== 'number'){
+                ctx.session.stackIndex = 0
+              }
+              let index = ctx.session.stackIndex
+              const like = new Reactions
+              like.fromUser = chatId
+              like.toUser =  profileStack.stack[index].chatId
+              like.reactionType = true
+              like.date = new Date()
+              let checkReaction = await AppDataSource.manager.findOneBy(Reactions,{ fromUser:profileStack.stack[index].chatId, toUser:chatId})
+              if(checkReaction){ //есть ли реакция на этого пользователя уже
+                switch(checkReaction.reactionType){
+                  case true://взаимная симпатия
+                    let choosedUser = await AppDataSource.manager.findOneBy(User, {chatId: profileStack.stack[index].chatId})
+                    ctx.reply(`У вас взаимная симпатия с [${choosedUser.name}](t.me/${choosedUser.userName})`, {
+                      parse_mode: 'MarkdownV2',
+                      disable_web_page_preview: true
+                    })
+                    break;
+                  case false:
+                    break;
+                }
+              }
+              await AppDataSource.manager.delete(Reactions, {fromUser: chatId, toUser: profileStack.stack[index].chatId})//удаляем предыдущие
+              await AppDataSource.manager.save(Reactions, like)//сохраняем лайк
+              index += 1
+              if(profileStack.stack.length-1 < index){
+                ctx.reply(`Анкеты по твоему запросу кончились\nПопробуй изменить настройки для поиска\n\n${await msgSearch(ctx)}`,{reply_markup: settingsBioKeyboard1})
+                break
+              }
+              await choosingProfPhoto(ctx, profileStack.stack[index].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
+              ctx.session.stackIndex = index
+              break;}
+            case 'dislike':{
+              const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              if(typeof(ctx.session.stackIndex) !== 'number'){
+                ctx.session.stackIndex = 0
+              }
+              let index = ctx.session.stackIndex
+              // === Если нужно будет сохранять Дизы ===
+              // const like = new Reactions
+              // like.fromUser = chatId
+              // like.toUser =  profileStack.stack[index].chatId
+              // like.reactionType = true
+              // like.date = new Date()
+              // await AppDataSource.manager.delete(Reactions, {fromUser: chatId, toUser: profileStack.stack[index].chatId})//удаляем предыдущие
+              // await AppDataSource.manager.save(Reactions, like)
+              index += 1
+              if(profileStack.stack.length-1 < index){
+                ctx.reply(`Анкеты по твоему запросу кончились\nПопробуй изменить настройки для поиска\n\n${await msgSearch(ctx)}`,{reply_markup: settingsBioKeyboard1})
+                break
+              }
+              await choosingProfPhoto(ctx, profileStack.stack[index].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
+              ctx.session.stackIndex = index
+              break;}
+            case 'letter':{
+              ctx.reply('Напишите сообщение пользователю.\nОграничение:100 символов')
+              ctx.session.letter = true
+            }
+            case 'showBio':{
+              let index = ctx.session.stackIndex
+              const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              ctx.editMessageText(await choosingProfExtraInfo(profileStack.stack[index].chatId), {reply_markup: chooseUserExtraKeyboard})
+              break;}
+            case 'closeBio':{
+              let index = ctx.session.stackIndex
+              const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              ctx.editMessageText(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
               break;
-
+            }
+            case 'fromBack':{
+              let index = ctx.session.stackIndex
+              if(index == 0){
+                ctx.reply('Нельзя отлистать назад')
+                break;
+              }
+              index -= 1
+              const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              await choosingProfPhoto(ctx, profileStack.stack[index].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
+              ctx.session.stackIndex = index
+              break;}
+            case 'stopChoosing':
+              ctx.reply('Твою анкету теперь не видно',{reply_markup: mainInfoKeyboard})
+              await userRepo.update({ chatId }, { inSearch: false });
+              ctx.editingComponent = 'maininfo'
             default:
               break;
         }

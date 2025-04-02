@@ -19,7 +19,7 @@ export async function downloadingUserLocations(ctx) {
           await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
           ctx.session.editingComponent = 'mainInfo'
           return
-    } else if(ctx.session.step == 'askLocation'){
+    } else if(ctx.session.activeStepName == 'askLocation'){
         const user = await AppDataSource.getRepository(User).findOneBy({ chatId });
         const userRepo = AppDataSource.getRepository(User)
         let photo = await (AppDataSource.getRepository(UserImages)).findOneBy({ chatId })
@@ -39,7 +39,7 @@ export async function downloadingUserLocations(ctx) {
         if(location && photo){
             await userRepo.update({ chatId }, { regPassed: true})
           }
-        ctx.session.step = 'extraInfo'
+        ctx.session.activeStepName = 'ExtraInfo'
         await ctx.reply('Хочешь еще что то о себе написать?',{reply_markup: yesNoKeyboard})
         return
     } else {

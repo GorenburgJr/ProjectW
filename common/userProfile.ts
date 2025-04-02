@@ -1,6 +1,6 @@
 import { AppDataSource } from "../src/data-source"
 import { User } from "../src/entity/User"
-import { extraInfo } from "../src/entity/ExtraInfo"
+import { ExtraInfo } from "../src/entity/ExtraInfo"
 import { zodiacTypes, 
     persTypes, 
     searchTypes,
@@ -14,7 +14,8 @@ import { zodiacTypes,
     socMediaTypes, 
     commTypes, 
     nightLiveTypes, 
-    sexTypes } from "../util/types"
+    sexTypes, 
+    YesNoTypes} from "../util/types"
 import { UserImages } from "../src/entity/UserImages"
 import * as fs from "fs";
 import * as path from 'path'
@@ -23,9 +24,11 @@ import {InputFile} from 'grammy'
 export async function msgUser(ctx) {
     const chatId = String(ctx.chat.id)
     const user = await AppDataSource.manager.findOneBy(User, { chatId });
-    const extra = await AppDataSource.manager.findOneBy(extraInfo, { chatId });
+    const extra = await AppDataSource.manager.findOneBy(ExtraInfo, { chatId });
 
-    let messageText = `${ctx.chat.first_name}, Твой профиль сейчас выглядит так:\n ${user.name}, ${user.age}, Я:${sexTypes[user.sex]}, Ищу:${sexTypes[user.sexSearch]}`
+    let messageText = `${ctx.chat.first_name}, Твой профиль сейчас выглядит так:
+    ${user.name}, ${user.age}, Я:${sexTypes[user.sex]}, Ищу:${sexTypes[user.sexSearch]}, 
+    Анкета активна:${YesNoTypes[String(user.inSearch) as 'true' | 'false']}`
     if(extra){
         if(typeof(extra.bio) == 'string'){
             messageText += `\nБио: ${extra.bio}`

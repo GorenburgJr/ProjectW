@@ -32,4 +32,7 @@ export const nightLiveTypes = ['Жаворонок','Сова','Что-то ср
 
 export const sexTypes= ['👚', '👕']
 
+export const YesNoTypes = {true:'✅',
+                            false:'❎'}
+
 export const booleanTypes:Record<string, string> = {true: 'Да',false: 'Нет'}

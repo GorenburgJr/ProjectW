@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, Unique, OneToOne, JoinColumn } from "typeorm"
-import { extraInfo } from "./ExtraInfo"
+import { ExtraInfo } from "./ExtraInfo"
 import { Location } from "./Location"
 import { UserImages } from "./UserImages"
 import { SearchSettings } from "./SearchSetting"
@@ -13,6 +13,9 @@ export class User {
 
     @Column({ type: "bigint" })
     chatId: string
+
+    @Column({default: null})
+    userName: string
 
     @Column()
     name: string
@@ -32,8 +35,8 @@ export class User {
     @Column({default:false})
     regPassed: boolean
 
-    @OneToOne(() => extraInfo, extra => extra.user,  { cascade: true, onDelete: 'CASCADE' })
-    extraInfo?: extraInfo;
+    @OneToOne(() => ExtraInfo, extra => extra.user,  { cascade: true, onDelete: 'CASCADE' })
+    ExtraInfo?: ExtraInfo;
 
     @OneToOne(() => Location, location => location.user,  { cascade: true, onDelete: 'CASCADE' })
     location?: Location;
@@ -43,5 +46,9 @@ export class User {
 
     @OneToOne(() => SearchSettings, searchsettings => searchsettings.user,  { cascade: true, onDelete: 'CASCADE' })
     searchsettings?: SearchSettings;
+
+    constructor(chatId: string){
+        this.chatId = chatId
+    }
 
 }
