@@ -26,14 +26,14 @@ export function smartRound(value: number): number {
     return Math.ceil(value / 500) * 500;
   }
 
-export async function choosingProfText(chatID , distance) { //не сделано
+export async function choosingProfText(chatID , distance) {
     const chatId = chatID
     const user = await AppDataSource.manager.findOneBy(User, { chatId });
     const extra = await AppDataSource.manager.findOneBy(ExtraInfo, { chatId });
 
     let messageText = `${user.name}, ${user.age} ,Расстояние: ${smartRound(distance)/1000} км.`
     if(extra){
-        if(typeof(extra.bio) == 'string'){
+        if(typeof(extra.bio) === 'string'){
             messageText += `\nБио: ${extra.bio}`
         }
     }
@@ -44,8 +44,8 @@ export async function choosingProfExtraInfo(chatId) {
     const extra = await AppDataSource.manager.findOneBy(ExtraInfo, {chatId})
     let messageText = []
     if(extra){
-        if(extra.language){
-            messageText.push(`Мои языки📖: ${extra.language}`)
+        if(typeof(extra.language) === 'string'){
+            messageText.push(`Языки📖: ${extra.language}`)
         }
         if(typeof(extra.zodiac) == 'number'){
             messageText.push(`ЗЗ: ${zodiacTypes[extra.zodiac]}🔮`)
@@ -95,6 +95,9 @@ export async function choosingProfExtraInfo(chatId) {
         if(typeof(extra.nightLive) == 'number'){
             messageText.push(`Образ жизни: ${nightLiveTypes[extra.nightLive]}💤`)
         }
+    }
+    if(messageText.length === 0){
+        return 'Нет Доп Инфы'
     }
     return messageText.join('\n')
 }

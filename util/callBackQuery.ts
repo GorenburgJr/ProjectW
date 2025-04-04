@@ -28,6 +28,7 @@ import { bioKeyboard1,
         fourPhotoKeyboard,
         chooseUserKeyboard,
         chooseUserExtraKeyboard,
+        reportKeyboard,
 } from './keyboards';
 import{AppDataSource} from '../src/data-source'
 import { User } from '../src/entity/User';
@@ -38,30 +39,55 @@ import { SearchSettings } from '../src/entity/SearchSetting';
 import { findUsersNearby} from './search';
 import { msgSearch } from '../common/userSearchProfile';
 import { deletingUserPhoto } from './workWithPhoto';
-import { ProfileStack } from '../src/entity/profileStack';
+import { ProfileStack } from '../src/entity/ProfileStack';
 import { choosingProfExtraInfo, choosingProfPhoto, choosingProfText, smartRound } from '../common/choosingProfile';
 import { Reactions } from '../src/entity/Reactions';
-import { Letter } from '../src/entity/Letters';
-import { escapeMarkdownV2 } from './escapeMarkdownV2';
+import { showLetters } from './showLetters';
+import { sendMatch } from '../app';
+import { Report } from '../src/entity/Report';
+import { BanList } from '../src/entity/BanList';
+import { banReport } from '../admin/banReport';
+import { notBanReport } from '../admin/notBanReport';
 
-
+  const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
+  const userRepo = AppDataSource.getRepository(User)
+  const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
 
 export async function CALLBACK (ctx) {
     const chatId = String(ctx.chat.id)
     const data = ctx.callbackQuery.data;
-    const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
-    const userRepo = AppDataSource.getRepository(User)
-    const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
-    let user = await AppDataSource.manager.findOneBy(User, { chatId })
+    let user = await userRepo.findOneBy({ chatId })
+
     const setComponent = (key: string) => {
-            if (user.inSearch) {
-              ctx.session.searchSettingComponent = key;
-            } else {
-              ctx.session.editingComponent = key;
-            }
-          };
+      if (user.inSearch) {
+        ctx.session.searchSettingComponent = key;
+      } else {
+        ctx.session.editingComponent = key;
+      }
+    };
         
     if(typeof(Number(data)) == 'number' && !isNaN(Number(data))){ //изменение значения
+      if(ctx.session.report){//report
+        const profileStack = await AppDataSource.manager.findOneBy(ProfileStack, { chatId })
+        const report = new Report()
+        const currentProfile = profileStack.stack[profileStack.index];//находим нужный профиль
+        const currentChatId = currentProfile.chatId//находим нужный ID
+        report.reasonId = Number(data)
+        report.reportedUserId = currentChatId
+        report.sendedUserId = chatId
+        report.date = new Date()
+        await AppDataSource.manager.save(report)
+        profileStack.index += 1
+        if(profileStack.stack.length-1 < profileStack.index){
+          ctx.reply(`Анкеты по твоему запросу кончились\nПопробуй изменить настройки для поиска\n\n${await msgSearch(ctx)}`,{reply_markup: settingsBioKeyboard1})
+          return
+        }
+        await choosingProfPhoto(ctx, profileStack.stack[profileStack.index].chatId, user.chatId)
+        ctx.reply(await choosingProfText(profileStack.stack[profileStack.index].chatId, profileStack.stack[profileStack.index].distance), {reply_markup: chooseUserKeyboard})
+        await AppDataSource.manager.update(ProfileStack, { chatId },{index: profileStack.index})
+        ctx.session.report = undefined
+        return ctx
+      }
         switch (ctx.session.editingComponent) {
             case 'zodiac':
             case 'persType':
@@ -94,7 +120,6 @@ export async function CALLBACK (ctx) {
                 await userRepo.update({ chatId }, { [ctx.session.editingComponent]: Number(data) })
                 await ctx.editMessageText(await msgUser(ctx), { reply_markup: mainInfoKeyboard })
                 ctx.session.editingComponent = 'mainInfo'
-                return
               break;
             default:
               break;
@@ -127,12 +152,13 @@ export async function CALLBACK (ctx) {
             await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard2 });
             break;
             case 'bio':
+            case 'language':
                 switch(data){
                     case '0':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.searchSettingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false})
                         break;
                     case '1':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.searchSettingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: true})
                         break;
                 }
                 await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard1 })
@@ -141,10 +167,10 @@ export async function CALLBACK (ctx) {
             case 'pets':
                 switch(data){
                     case '0':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.searchSettingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: false})
                         break;
                     case '1':await searchSettingsRepo.update({ chatId }, {
-                        [ctx.session.searchSettingComponent]: false,})
+                        [ctx.session.searchSettingComponent]: true})
                         break;
                 }
                 await ctx.editMessageText(await msgSearch(ctx), { reply_markup: settingsBioKeyboard2 })
@@ -159,7 +185,11 @@ export async function CALLBACK (ctx) {
 }
     //таблица выбора
     switch(data){
-        case 'back': //назад по меню
+        case 'back':
+            if(ctx.session.report){
+              await ctx.editMessageReplyMarkup({reply_markup: chooseUserKeyboard})
+              return
+            } //назад по меню
             switch (ctx.session.editingComponent) {
                 case 'persType':
                 case 'zodiac':
@@ -308,8 +338,13 @@ export async function CALLBACK (ctx) {
             break;
         // === ТЕКСТОВЫЕ ПОЛЯ ===
         case 'languge':
-          setComponent('language');
+          if(user.inSearch){
+            setComponent('language');
+          await ctx.editMessageReplyMarkup({ reply_markup: yesNoInKeyboard });
+          }else {
+            setComponent('language');
           await ctx.reply('Напиши Языки', { reply_markup: cancelBackKeyboard });
+          }
           break;        
         case 'height':
             if (user.inSearch) {
@@ -468,19 +503,22 @@ export async function CALLBACK (ctx) {
         
             case 'location':
               setComponent('location');
-              ctx.reply('Отправь локацию', {reply_markup: shareLocation})
+              ctx.reply('Отправь локацию', {reply_markup: [shareLocation]})
               break;
         
             case 'stopSearching':
-              await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
-              await userRepo.update({ chatId }, { inSearch: false });
+              if(user.inSearch){
+                await userRepo.update({ chatId }, { inSearch: false });
+                await (imgUser(ctx, await msgUser(ctx), mainInfoKeyboard))
+              } 
               break;
         
             case 'continueSearching':
-              await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
-              await userRepo.update({ chatId }, { inSearch: true });
+              if(!user.inSearch){
+                await userRepo.update({ chatId }, { inSearch: true });
+                await (imgUser(ctx, await msgUser(ctx), mainInfoKeyboard))
+              }
               break;
-        
             // === ФОТО ===
             case 'photo':
               const userPhotoRepo = AppDataSource.getRepository(UserImages);
@@ -521,99 +559,85 @@ export async function CALLBACK (ctx) {
             
             // === ПОИСК ===
             case 'startSearch':{
-              let profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
+              let profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })// подгрузка старого стака
+              let arr = await findUsersNearby(user)//создание нового стека
+              if(profileStack === null || profileStack.stack.length < 0){// если стек пустой
                 profileStack = new ProfileStack()
                 profileStack.chatId = chatId
-                profileStack.stack = []
-                const arr = await findUsersNearby(user)
-                arr.forEach(element => {
-                  profileStack.stack.push(element)
-                });
-              await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: null})
-              await AppDataSource.manager.save(profileStack)
-              const letters = await AppDataSource.manager.findBy(Letter, {toUser: chatId})
-              if(letters.length>= 1){
-                letters.forEach(async element => {
-                  const fromUser = await AppDataSource.manager.findOneBy(User, {chatId: element.fromUser})
-                  const distance = smartRound(element.distance)
-                  const name = escapeMarkdownV2(fromUser.name)
-                  const userName = escapeMarkdownV2(fromUser.userName)
-                  const age = escapeMarkdownV2(fromUser.age.toString())
-                  const dist = escapeMarkdownV2(distance.toString())
-                  const message = escapeMarkdownV2(element.text)
-                  ctx.reply(`Сообщение от [${name}](t.me/${userName}), ${age}, ${dist}км\\.\\: ${message}`, {
-                    parse_mode: 'MarkdownV2',
-                    disable_web_page_preview: true,
-                    reply_markup: new InlineKeyboard().text('Прододжить', 'startSearch')
-                  });
-
-                });
-                await AppDataSource.manager.delete(Letter, {toUser: chatId})
-                break
+                profileStack.stack = [...arr]
+                await AppDataSource.manager.save(ProfileStack, profileStack)
+              }
+              else {
+                const findedProfiles = await AppDataSource.manager.findBy(Reactions, {fromUser: chatId})// удаляем уже отсмотренные человеком записи
+                const findedReportedProfiles = await AppDataSource.manager.findBy(Report, {sendedUserId: chatId})
+                arr = arr.filter(item =>
+                  !findedProfiles.some(profile => profile.toUser === item.chatId) &&
+                  !findedReportedProfiles.some(profile => profile.reportedUserId === item.chatId)
+                );
+                
+                await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: arr})
+              }
+              showLetters(ctx)// письма
+              if(arr.length === 0){
+                ctx.reply('По твоему запросу анкеты не были найдены. попробуй изменить свои настройки поиска')
+                ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
+                return
               }
               ctx.reply(`По твоему запросу было найдено ${arr.length} пользователей. Вот первый из них`)
+              
               await choosingProfPhoto(ctx, profileStack.stack[0].chatId, user.chatId)
               ctx.reply(await choosingProfText(profileStack.stack[0].chatId, profileStack.stack[0].distance), {reply_markup: chooseUserKeyboard})
-              ctx.session.stackIndex = 0;
               break;}
             case 'like':{
               const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
-              if(typeof(ctx.session.stackIndex) !== 'number'){
-                ctx.session.stackIndex = 0
-              }
-              let index = ctx.session.stackIndex
+              profileStack.index
               const like = new Reactions
               like.fromUser = chatId
-              like.toUser =  profileStack.stack[index].chatId
+              like.toUser =  profileStack.stack[profileStack.index].chatId
               like.reactionType = true
               like.date = new Date()
-              let checkReaction = await AppDataSource.manager.findOneBy(Reactions,{ fromUser:profileStack.stack[index].chatId, toUser:chatId})
+              let checkReaction = await AppDataSource.manager.findOneBy(Reactions,{ fromUser:profileStack.stack[profileStack.index].chatId, toUser:chatId})
               if(checkReaction){ //есть ли реакция на этого пользователя уже
                 switch(checkReaction.reactionType){
                   case true://взаимная симпатия
-                    let choosedUser = await AppDataSource.manager.findOneBy(User, {chatId: profileStack.stack[index].chatId})
+                    let choosedUser = await AppDataSource.manager.findOneBy(User, {chatId: profileStack.stack[profileStack.index].chatId})
                     ctx.reply(`У вас взаимная симпатия с [${choosedUser.name}](t.me/${choosedUser.userName})`, {
                       parse_mode: 'MarkdownV2',
                       disable_web_page_preview: true
                     })
+                    await sendMatch(profileStack.stack[profileStack.index].chatId, chatId)
                     break;
                   case false:
                     break;
                 }
               }
-              await AppDataSource.manager.delete(Reactions, {fromUser: chatId, toUser: profileStack.stack[index].chatId})//удаляем предыдущие
               await AppDataSource.manager.save(Reactions, like)//сохраняем лайк
-              index += 1
-              if(profileStack.stack.length-1 < index){
+              profileStack.index += 1
+              if(profileStack.stack.length-1 < profileStack.index){
                 ctx.reply(`Анкеты по твоему запросу кончились\nПопробуй изменить настройки для поиска\n\n${await msgSearch(ctx)}`,{reply_markup: settingsBioKeyboard1})
                 break
               }
-              await choosingProfPhoto(ctx, profileStack.stack[index].chatId, user.chatId)
-              ctx.reply(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
-              ctx.session.stackIndex = index
+              await choosingProfPhoto(ctx, profileStack.stack[profileStack.index].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[profileStack.index].chatId, profileStack.stack[profileStack.index].distance), {reply_markup: chooseUserKeyboard})
+              await AppDataSource.manager.update(ProfileStack, { chatId },{index: profileStack.index})
               break;}
             case 'dislike':{
               const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
-              if(typeof(ctx.session.stackIndex) !== 'number'){
-                ctx.session.stackIndex = 0
-              }
-              let index = ctx.session.stackIndex
               // === Если нужно будет сохранять Дизы ===
-              // const like = new Reactions
-              // like.fromUser = chatId
-              // like.toUser =  profileStack.stack[index].chatId
-              // like.reactionType = true
-              // like.date = new Date()
-              // await AppDataSource.manager.delete(Reactions, {fromUser: chatId, toUser: profileStack.stack[index].chatId})//удаляем предыдущие
-              // await AppDataSource.manager.save(Reactions, like)
-              index += 1
-              if(profileStack.stack.length-1 < index){
+              const like = new Reactions
+              like.fromUser = chatId
+              like.toUser =  profileStack.stack[profileStack.index].chatId
+              like.reactionType = false
+              like.date = new Date()
+              await AppDataSource.manager.save(Reactions, like)
+              profileStack.index += 1
+              if(profileStack.stack.length-1 < profileStack.index){
                 ctx.reply(`Анкеты по твоему запросу кончились\nПопробуй изменить настройки для поиска\n\n${await msgSearch(ctx)}`,{reply_markup: settingsBioKeyboard1})
                 break
               }
-              await choosingProfPhoto(ctx, profileStack.stack[index].chatId, user.chatId)
-              ctx.reply(await choosingProfText(profileStack.stack[index].chatId, profileStack.stack[index].distance), {reply_markup: chooseUserKeyboard})
-              ctx.session.stackIndex = index
+              await choosingProfPhoto(ctx, profileStack.stack[profileStack.index].chatId, user.chatId)
+              ctx.reply(await choosingProfText(profileStack.stack[profileStack.index].chatId, profileStack.stack[profileStack.index].distance), {reply_markup: chooseUserKeyboard})
+              await AppDataSource.manager.update(ProfileStack, { chatId },{index: profileStack.index})
               break;}
             case 'letter':{
               ctx.reply('Напишите сообщение пользователю.\nОграничение:100 символов')
@@ -646,10 +670,22 @@ export async function CALLBACK (ctx) {
               ctx.reply('Твою анкету теперь не видно',{reply_markup: mainInfoKeyboard})
               await userRepo.update({ chatId }, { inSearch: false });
               ctx.editingComponent = 'maininfo'
+              break;
+            case 'report':
+              ctx.session.report = true
+              ctx.editMessageReplyMarkup({reply_markup: reportKeyboard})
+              break;
+            // === BanList ===
+
+            case 'reportBan':
+              banReport(user ,ctx)
+              break;
+            case 'reportContinue':
+              notBanReport(user, ctx)
+              break;
             default:
               break;
         }
-            
           return ctx
         }
         

@@ -7,9 +7,11 @@ import { Location } from "./entity/Location"
 import { UserImages } from "./entity/UserImages"
 import { SearchSettings } from "./entity/SearchSetting"
 import * as dotenv from 'dotenv'
-import { ProfileStack } from "./entity/profileStack"
+import { ProfileStack } from "./entity/ProfileStack"
 import { Reactions } from "./entity/Reactions"
 import { Letter } from "./entity/Letters"
+import { BanList } from "./entity/BanList"
+import { Roles } from "./entity/Roles"
 
 dotenv.config()
 
@@ -30,7 +32,9 @@ export const AppDataSource = new DataSource({
         SearchSettings,
         ProfileStack,
         Reactions,
-        Letter
+        Letter,
+        BanList,
+        Roles
     ],
     migrations: [],
     subscribers: [],

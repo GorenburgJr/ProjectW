@@ -19,7 +19,8 @@ import { zodiacTypes,
 import { UserImages } from "../src/entity/UserImages"
 import * as fs from "fs";
 import * as path from 'path'
-import {InputFile} from 'grammy'
+import {Bot as GrammyBot, InputFile} from 'grammy'
+import { InputMediaPhoto } from "grammy/types"
 
 export async function msgUser(ctx) {
     const chatId = String(ctx.chat.id)
@@ -107,14 +108,14 @@ export async function imgUser(ctx, message: string, keyboard) {
       return {
         type: "photo",
         media: new InputFile(fs.createReadStream(fullPath)),
-        ...(index === 0 && {
+        // ...(index === 0 && {
         //   caption: message,
         //   reply_markup: keyboard, // reply_markup — только в первом фото
-        }),
-      };
-    });
+        // })
+      }
+    })
   
     await ctx.api.sendMediaGroup(chatId, mediaGroup)
     await ctx.reply(message, {reply_markup:keyboard});
   }
-  
+

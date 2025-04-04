@@ -6,13 +6,19 @@ export class Report {
     @PrimaryGeneratedColumn()
     report_id: number
 
-    @Column()
-    reportedUserId: number
+    @Column({type: 'bigint'})
+    reportedUserId: string
 
-    @Column()
-    sendedUserId: number
+    @Column({type: 'bigint'})
+    sendedUserId: string
 
     @Column()
     reasonId: number
+
+    @Column({ type: 'date', nullable: true})
+    date: Date
+
+    @Column({default: 'false'})
+    checked: boolean
 
 }

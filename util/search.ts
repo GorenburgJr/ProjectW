@@ -15,7 +15,7 @@ import { Location } from "../src/entity/Location";
 export async function findUsersNearby(user) {
   const chatId = user.chatId
   const userSearchSettings = await AppDataSource.manager.findOneBy(SearchSettings, { chatId }) //настройки поиска пользователя
-    const userPoint = await AppDataSource.manager.findOneBy(Location, { chatId }) //локация пользователя
+  const userPoint = await AppDataSource.manager.findOneBy(Location, { chatId }) //локация пользователя
   const latitude = userPoint.location.coordinates[1]
   const longitude = userPoint.location.coordinates[0]
   const radiusInMeters = userSearchSettings.radius

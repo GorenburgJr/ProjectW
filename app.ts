@@ -5,16 +5,19 @@ import { User } from "./src/entity/User";
 import { ExtraInfo } from "./src/entity/ExtraInfo";
 import {bioKeyboard1, bioKeyboard2, yesNoKeyboard, mainInfoKeyboard, settingsBioKeyboard1} from './util/keyboards'
 import { CALLBACK } from "./util/callBackQuery";
-import {imgUser, msgUser} from './common/userProfile'
-import { Location } from "./src/entity/Location";
+import { imgUser, msgUser} from './common/userProfile'
+import { imgMatchUser, msgMatchUser } from './common/matchedUserProfile'
 import { downloadingUserPhoto } from "./util/workWithPhoto";
 import { msgSearch } from "./common/userSearchProfile";
-import { SearchSettings } from "./src/entity/SearchSetting";
 import { downloadingUserLocations } from "./util/workWithLocation";
 import { userRegistration } from "./common/userRegistration";
 import { checkUserExist } from "./util/existCheck";
-import { Letter } from "./src/entity/Letters";
-import { ProfileStack } from "./src/entity/profileStack";
+import { sendLetter } from "./util/writeLetter";
+import { searchComponent } from "./util/searchComponent";
+import { editComponent } from "./util/editComponent";
+import { Roles } from "./src/entity/Roles"
+import { checkReport } from "./admin/checkReports";
+import { banReport } from "./admin/banReport";
 dotenv.config();
 
 interface FormSession {
@@ -26,9 +29,10 @@ interface FormSession {
   age?: number;
   sex?: boolean;
   sexSearch?: boolean;
-  stackIndex?: number;
-  binary: 0;
+  binary: 0; // для написания диапазона
   letter?: boolean;
+  report?: boolean;
+  reason?: boolean;// причина бана
   searchSettingComponent?: null |  'age' | 'radius' | 'language' | 'zodiac' | 'height' | 
   'persType' | 'mySearch' |'education' | 'familyPlans' | 'bio' | 'loveLang' | 'work' | 
   'pets' | 'alcohol' | 'smoke' | 'gym' | 'food' | 'socMedia' | 'commType' | 'nightLive'
@@ -39,7 +43,15 @@ type MyContext = Context & SessionFlavor<FormSession>;
 
 const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN);
 
-
+export async function sendMatch (chatId, userChatId) {
+  const user = await AppDataSource.manager.findOneBy(User, {chatId:userChatId})
+  await bot.api.sendMessage(chatId, `У вас взаимная симпатия с [${user.name}](t.me/${user.userName})`, {
+                      parse_mode: 'MarkdownV2',
+                      disableWebPagePreview: true
+} as any)
+  await imgMatchUser(chatId)
+  bot.api.sendMessage(chatId,await msgMatchUser(chatId))
+}
 
 AppDataSource.initialize()
   .then(async () => {
@@ -48,9 +60,32 @@ AppDataSource.initialize()
         initial: (): FormSession => ({ activeStepName: null  , binary: 0}),
       })
     );
-    
+    bot.api.setMyCommands([
+      {
+          command:  'start', 
+          description: 'Начать взаимодействие'
+      },
+      {
+          command: 'help',
+          description: 'Помощь'
+      },
+      {
+          command: 'edit',
+          description: 'Настроить свой профиль'
+      },
+      {
+        command: 'search',
+        description: 'Начать поиск'
+      },
+      {
+        command: 'stop',
+        description: 'Отключить анкету'
+      }
+  ])
+
     const userRepo = AppDataSource.getRepository(User)
-    const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
+    const extraInfRepo = AppDataSource.getRepository(ExtraInfo);
+
     bot.command("start", async (ctx) => {
         const userExist = await checkUserExist(ctx)
         if (!userExist) {
@@ -68,34 +103,46 @@ AppDataSource.initialize()
       if(!user || user.regPassed  == false){
         ctx.reply('Вначале закончи регистрацию!\n/start')
         return
-      }
-      await userRepo.update({ chatId }, { inSearch: false })  
+      } 
       await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
+    })
+
+    bot.command('stop',async (ctx) => {
+      const chatId = String(ctx.chat.id)
+      ctx.reply('Твою анкету теперь не видно')
+      await userRepo.update({chatId}, {inSearch: false})
+      await imgUser(ctx, await msgUser(ctx), mainInfoKeyboard)
     })
 
     bot.command('search', async (ctx) => {
       const chatId = String(ctx.chat.id)
       let user = await userRepo.findOneBy({ chatId })
-      const existingSearchSettings = await AppDataSource.manager.findOneBy(SearchSettings, { chatId });
+
       if(user === null || !user.regPassed){
         ctx.reply('Вначале закончи регистрацию!\n/start')
         return
-
       } else {
-        if(!existingSearchSettings){
-        const defaultUserSearchSettings = await AppDataSource.manager.findOneBy(User, { chatId })
-        await AppDataSource.manager.save(defaultUserSearchSettings)
-        }
-
         await userRepo.update({ chatId }, { inSearch: true })
         ctx.reply(await msgSearch(ctx),{reply_markup: settingsBioKeyboard1})
+      }
+    })
+
+    bot.command('reportpanel', async (ctx) => {
+      const chatId = String(ctx.chat.id)
+      const checkAdmin = await AppDataSource.manager.findOneBy(Roles, { chatId })
+      if(checkAdmin){
+        await checkReport(ctx)
+        return 
+      }
+      else {
+        ctx.reply('Я не понял. \nНапиши /help')
+        return
       }
     })
 
     bot.on('callback_query', async (ctx) => {
         const chatId = String(ctx.chat.id)
         let user = await userRepo.findOneBy({ chatId })
-        const extraInfRepo = AppDataSource.getRepository(ExtraInfo);
         let extra = await extraInfRepo.findOneBy({ chatId })
         
         if (!extra) {
@@ -116,178 +163,48 @@ AppDataSource.initialize()
         ctx.reply("Отпрвавь мне Гео")
         return
       }
+
       if(ctx.session.activeStepName === 'askPhotos' || ctx.session.editingComponent === 'photo'){
         ctx.reply("Отпрвавь мне фото")
         return
       }
+
+      if(ctx.session.activeStepName !== null){
+        await userRegistration(ctx)
+        return
+      }
+
       if(ctx.session.letter === true){
-        if(ctx.message.text.length > 100){
-          ctx.reply('Напиши короче')
-          return
-        }
-        const toUser = await AppDataSource.manager.findOneBy(ProfileStack, {chatId: chatId})
-        const checkLetter = await AppDataSource.manager.findOneBy(Letter, {fromUser: chatId, toUser:toUser.stack[ctx.session.stackIndex].chatId})
-        if(checkLetter){
-          await AppDataSource.manager.update(Letter, {fromUser: chatId, toUser:toUser[ctx.session.stackIndex].chatId}, {text: ctx.message.text})
-        }
-        else {
-          const letter = new Letter()
-          letter.fromUser = chatId
-          letter.toUser = toUser.stack[ctx.session.stackIndex].chatId
-          letter.text = ctx.message.text
-          letter.distance = toUser.stack[ctx.session.stackIndex].distance
-          await AppDataSource.manager.save(letter)
-        }
-        ctx.session.letter = undefined
-        return ctx
+        sendLetter(ctx)
+        return
       }
       
-      let user = await AppDataSource.manager.findOneBy(User, { chatId });
-      const settings = await AppDataSource.manager.findOneBy(SearchSettings, { chatId })
+
+      let user = await userRepo.findOneBy({ chatId });
       ctx.message.text = ctx.message.text.trim();
-      const searchSettingsRepo = AppDataSource.getRepository(SearchSettings)
-      
+
+      if(ctx.session.reason === true){
+        await banReport(user ,ctx)
+      }
+
       if (!user) {
         user = new User(chatId);
         user.chatId = chatId;
       }
 
-      const extra = new ExtraInfo(user.chatId, user)
-
-      const maxLengths = {
-        language: 35,
-        pets: 35,
-        work: 35,
-        bio: 500,
-        name: 15
-      };
-
-      switch(ctx.session.searchSettingComponent){
-        case 'height':
-          const height = Number(ctx.message.text)
-          if (isNaN(height)) {
-            await ctx.reply('Напиши цифру');
-            return;
-          }
-          if(ctx.session.binary == 0){
-            if(!Array.isArray(settings.height)){
-              settings.height = []
-            }
-            settings.height[ctx.session.binary] = Number(ctx.message.text)
-            ctx.session.binary += 1
-            ctx.reply('Напиши до какого значения')
-            await searchSettingsRepo.update({ chatId }, settings)
-            return ctx.session.binary
-          }
-          if(ctx.session.binary == 1 ){
-            if(Number(ctx.message.text) < settings.age[0]){
-              ctx.reply('Второе число не может быть меньше первого значения')
-              return
-            }
-            settings.height[ctx.session.binary] = Number(ctx.message.text)
-            await AppDataSource.manager.save(settings)
-            ctx.session.binary = 0
-            ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
-            ctx.session.searchSettingComponent = null
-            return ctx.session
-          }
-        case 'age':
-          const age = Number(ctx.message.text)
-          if (isNaN(age)) {
-            await ctx.reply('Напиши цифру');
-            return;
-          }
-          if(ctx.session.binary == 0){
-            settings.age[ctx.session.binary] = Number(ctx.message.text)
-            ctx.session.binary += 1
-            ctx.reply('Напиши до какого значения')
-            await AppDataSource.manager.save(settings)
-            return ctx.session.binary
-          }
-          if(ctx.session.binary == 1 ){
-            if(Number(ctx.message.text) < settings.age[0]){
-              ctx.reply('Второе число не может быть меньше первого значения')
-              return
-            }
-            settings.age[ctx.session.binary] = Number(ctx.message.text)
-            await AppDataSource.manager.save(settings)
-            ctx.session.binary = 0
-            ctx.session.searchSettingComponent = null
-            ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
-            return ctx
-
-          }
-          await searchSettingsRepo.update({ chatId }, {height: [height]})
-          await AppDataSource.manager.save(settings)
-          return
-        case 'radius':
-          let radius = Number(ctx.message.text)
-          if (isNaN(radius)) {
-            await ctx.reply('Напиши цифру');
-            return;
-          }
-          if(radius >150){
-            ctx.reply('Ограничение на 150 КМ')
-            return
-          }
-          radius *= 1000
-          await searchSettingsRepo.update({ chatId }, {radius: radius})
-          await ctx.reply(await msgSearch(ctx), {reply_markup:settingsBioKeyboard1})
-          ctx.session.searchSettingComponent = null
-          return ctx
+      if (ctx.session.searchSettingComponent !== null ||ctx.session.searchSettingComponent !== undefined){
+        searchComponent(ctx)
+        return
+      }
+      
+      if (ctx.session.editingComponent !== null ||ctx.session.editingComponent !== undefined){
+        editComponent(ctx)
+        return
       }
 
-      switch (ctx.session.editingComponent) {
-        case 'language':
-        case 'pets':
-        case 'work':
-        case 'bio':
-          if (ctx.message.text.length > maxLengths[ctx.session.editingComponent]) {
-            await ctx.reply('Напиши короче');
-            return;
-          }
-          await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: ctx.message.text });
-          await imgUser(ctx,await msgUser(ctx), ctx.session.editingComponent === 'language' ||  ctx.session.editingComponent === 'bio' ? bioKeyboard1 : bioKeyboard2);
-          break;
-
-        case 'height':
-          const height = Number(ctx.message.text);
-          if (isNaN(height)) {
-            await ctx.reply('Напиши цифру');
-            return;
-          }
-          await ExtraInfoRepo.update({ chatId }, { height });
-          await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
-          break;
-          case 'name':
-            if (ctx.message.text.length > maxLengths[ctx.session.editingComponent]) {
-              await ctx.reply('Напиши короче');
-              return;
-            }
-            await userRepo.update({ chatId }, { name: ctx.message.text })
-            await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
-            ctx.session.editingComponent = 'mainInfo'
-            return
-          case 'age':
-            const age = Number(ctx.message.text);
-            if (isNaN(age)) {
-              await ctx.reply('Напиши цифру');
-              return;
-            }
-            await userRepo.update({ chatId }, { age: Number(ctx.message.text) });
-            await imgUser(ctx,await msgUser(ctx), mainInfoKeyboard)
-            ctx.session.editingComponent = 'mainInfo'
-            return
-          default:
-            break;
-        }
       if(ctx.session.editingComponent !== null){
       ctx.session.editingComponent = null;
       return
-      }
-      if(ctx.session.activeStepName !== null){
-        await userRegistration(ctx)
-        return
       }
         ctx.reply('Я не понял. \nНапиши /help')
     })

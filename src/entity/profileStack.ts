@@ -10,4 +10,7 @@ export class ProfileStack {
     @Column('jsonb', { nullable: true })
     stack: { chatId: string; distance: number }[]
 
+    @Column({default: 0})
+    index: number
+
 }
