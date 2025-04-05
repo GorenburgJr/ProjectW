@@ -18,6 +18,7 @@ import { UserImages } from "../src/entity/UserImages"
 import * as fs from "fs";
 import * as path from 'path'
 import {InputFile} from 'grammy'
+import { chooseUserKeyboard } from "../util/keyboards"
 
 export function smartRound(value: number): number {
     if (value < 500) {
@@ -116,4 +117,10 @@ export async function choosingProfPhoto(ctx, findedUser, toSendId) {
     });
 
     await ctx.api.sendMediaGroup(toSendId, mediaGroup)
+}
+
+export async function firstProfile(ctx, user , profileStack) {
+    await choosingProfPhoto(ctx, profileStack.stack[profileStack.index].chatId, user.chatId)
+    ctx.reply(await choosingProfText(profileStack.stack[profileStack.index].chatId, profileStack.stack[profileStack.index].distance), {reply_markup: chooseUserKeyboard})
+    
 }

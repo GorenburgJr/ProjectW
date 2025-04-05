@@ -40,7 +40,7 @@ import { findUsersNearby} from './search';
 import { msgSearch } from '../common/userSearchProfile';
 import { deletingUserPhoto } from './workWithPhoto';
 import { ProfileStack } from '../src/entity/ProfileStack';
-import { choosingProfExtraInfo, choosingProfPhoto, choosingProfText, smartRound } from '../common/choosingProfile';
+import { choosingProfExtraInfo, choosingProfPhoto, choosingProfText, firstProfile, smartRound } from '../common/choosingProfile';
 import { Reactions } from '../src/entity/Reactions';
 import { showLetters } from './showLetters';
 import { sendMatch } from '../app';
@@ -561,6 +561,7 @@ export async function CALLBACK (ctx) {
             case 'startSearch':{
               let profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })// подгрузка старого стака
               let arr = await findUsersNearby(user)//создание нового стека
+              try{
               if(profileStack === null || profileStack.stack.length < 0){// если стек пустой
                 profileStack = new ProfileStack()
                 profileStack.chatId = chatId
@@ -569,13 +570,13 @@ export async function CALLBACK (ctx) {
               }
               else {
                 const findedProfiles = await AppDataSource.manager.findBy(Reactions, {fromUser: chatId})// удаляем уже отсмотренные человеком записи
-                const findedReportedProfiles = await AppDataSource.manager.findBy(Report, {sendedUserId: chatId})
+                const findedReportedProfiles = await AppDataSource.manager.findBy(Report, {sendedUserId: chatId})//удаляем зарепорченные акаунты
                 arr = arr.filter(item =>
                   !findedProfiles.some(profile => profile.toUser === item.chatId) &&
                   !findedReportedProfiles.some(profile => profile.reportedUserId === item.chatId)
                 );
                 
-                await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: arr})
+                await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: arr, index: 0})
               }
               showLetters(ctx)// письма
               if(arr.length === 0){
@@ -583,10 +584,12 @@ export async function CALLBACK (ctx) {
                 ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
                 return
               }
-              ctx.reply(`По твоему запросу было найдено ${arr.length} пользователей. Вот первый из них`)
+              await ctx.reply(`По твоему запросу было найдено ${arr.length} пользователей. Вот первый из них`)
+              }
+              finally{
+                await firstProfile(ctx, user, profileStack)
+              }
               
-              await choosingProfPhoto(ctx, profileStack.stack[0].chatId, user.chatId)
-              ctx.reply(await choosingProfText(profileStack.stack[0].chatId, profileStack.stack[0].distance), {reply_markup: chooseUserKeyboard})
               break;}
             case 'like':{
               const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
@@ -678,7 +681,8 @@ export async function CALLBACK (ctx) {
             // === BanList ===
 
             case 'reportBan':
-              banReport(user ,ctx)
+              ctx.session.reason = true
+              ctx.reply('Причина')
               break;
             case 'reportContinue':
               notBanReport(user, ctx)

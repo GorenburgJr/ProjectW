@@ -73,9 +73,9 @@ export async function msgMatchUser(chatId) {
     return messageText
 }
 
-export async function imgMatchUser(chatId) {
+export async function imgMatchUser(chatId, userChatId) {
     const bot = new GrammyBot(process.env.BOT_API_TOKEN)
-    const userimages = await AppDataSource.manager.findOneBy(UserImages, { chatId });
+    const userimages = await AppDataSource.manager.findOneBy(UserImages, { chatId:userChatId });
   
     const folderPath = path.join(__dirname, "..", "photos");
   
@@ -87,5 +87,5 @@ export async function imgMatchUser(chatId) {
       };
     }) as InputMediaPhoto[]
     await bot.api.sendMediaGroup(chatId, mediaGroup)
-    
+
   }

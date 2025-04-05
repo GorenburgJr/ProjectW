@@ -1,5 +1,4 @@
 import { choosingProfExtraInfo, choosingProfPhoto, choosingProfText } from "../common/choosingProfile";
-import { imgUser, msgUser } from "../common/userProfile";
 import { AppDataSource } from "../src/data-source";
 import { Report } from "../src/entity/Report";
 import { User } from "../src/entity/User";

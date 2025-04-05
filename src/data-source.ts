@@ -17,11 +17,11 @@ dotenv.config()
 
 export const AppDataSource = new DataSource({
     type: "postgres",
-    host: "localhost",
-    port: 5432,
+    host: process.env.DATA_BASE_HOST,
+    port: Number(process.env.DATA_BASE_PORT),
     username: process.env.DATA_BASE_USER,
     password: process.env.DATA_BASE_PWD,
-    database: "teledb",
+    database: process.env.DATA_BASE_NAME,
     synchronize: true,
     logging: false,
     entities: [User, 

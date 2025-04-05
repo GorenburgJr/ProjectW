@@ -18,6 +18,7 @@ import { editComponent } from "./util/editComponent";
 import { Roles } from "./src/entity/Roles"
 import { checkReport } from "./admin/checkReports";
 import { banReport } from "./admin/banReport";
+import { BanList } from "./src/entity/BanList";
 dotenv.config();
 
 interface FormSession {
@@ -41,7 +42,7 @@ interface FormSession {
 
 type MyContext = Context & SessionFlavor<FormSession>;
 
-const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN);
+export const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN);
 
 export async function sendMatch (chatId, userChatId) {
   const user = await AppDataSource.manager.findOneBy(User, {chatId:userChatId})
@@ -88,6 +89,11 @@ AppDataSource.initialize()
 
     bot.command("start", async (ctx) => {
         const userExist = await checkUserExist(ctx)
+        const checkBan = await AppDataSource.manager.findOneBy(BanList, {bannedId: String(ctx.chat.id)})
+        if(checkBan){
+          ctx.reply('Вы были забанены')
+          return
+        }
         if (!userExist) {
             ctx.session = { activeStepName: "askConsent",editingComponent: null, binary: 0};
             await ctx.reply("Привет! Твоя анкета не была найдена. Давай создадим её (Да/Нет)",{reply_markup: yesNoKeyboard} );
@@ -179,12 +185,20 @@ AppDataSource.initialize()
         return
       }
       
+      const checkBan = await AppDataSource.manager.findOneBy(BanList, {bannedId: String(ctx.chat.id)})
+      if(checkBan){
+        ctx.reply('Вы были забанены')
+        return
+      }
 
       let user = await userRepo.findOneBy({ chatId });
       ctx.message.text = ctx.message.text.trim();
 
       if(ctx.session.reason === true){
         await banReport(user ,ctx)
+        ctx.session.reason = undefined
+        ctx.reply('Сохранено')
+        return ctx
       }
 
       if (!user) {
