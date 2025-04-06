@@ -94,5 +94,4 @@ export async function searchComponent(ctx) {
               return ctx
           }
           return ctx
-    
 }

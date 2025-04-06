@@ -13,7 +13,7 @@ export class Reactions {
     @Column({ type: 'bigint' })
     toUser: string
 
-    @Column({ type: 'boolean'})
+    @Column({ type: 'boolean' })
     reactionType: boolean//false дизлайк true лайк
 
     @Column({ type: 'date' })

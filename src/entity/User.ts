@@ -35,6 +35,9 @@ export class User {
     @Column({default:false})
     regPassed: boolean
 
+    @Column({default: false, nullable: true})
+    editing: boolean
+
     @OneToOne(() => ExtraInfo, extra => extra.user,  { cascade: true, onDelete: 'CASCADE' })
     ExtraInfo?: ExtraInfo;
 

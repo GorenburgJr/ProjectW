@@ -4,6 +4,7 @@
    "description": "DateBot",
    "main": "app.js",
    "scripts": {
+      "build": "tsc",
       "start": "ts-node-dev --respawn ./app.ts",
       "typeorm": "typeorm-ts-node-commonjs",
       "reset-db": "ts-node reset.ts"

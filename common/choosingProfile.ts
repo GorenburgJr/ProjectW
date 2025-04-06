@@ -120,7 +120,7 @@ export async function choosingProfPhoto(ctx, findedUser, toSendId) {
 }
 
 export async function firstProfile(ctx, user , profileStack) {
-    await choosingProfPhoto(ctx, profileStack.stack[profileStack.index].chatId, user.chatId)
-    ctx.reply(await choosingProfText(profileStack.stack[profileStack.index].chatId, profileStack.stack[profileStack.index].distance), {reply_markup: chooseUserKeyboard})
+    await choosingProfPhoto(ctx, profileStack.stack[0].chatId, user.chatId)
+    ctx.reply(await choosingProfText(profileStack.stack[0].chatId, profileStack.stack[0].distance), {reply_markup: chooseUserKeyboard})
     
 }

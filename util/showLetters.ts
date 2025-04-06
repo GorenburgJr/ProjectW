@@ -13,13 +13,11 @@ export async function showLetters(ctx) {
     if(letters.length>= 1){
                     letters.forEach(async element => {
                     const fromUser = await AppDataSource.manager.findOneBy(User, {chatId: element.fromUser})
-                    const distance = smartRound(element.distance)
                     const name = escapeMarkdownV2(fromUser.name)
                     const userName = escapeMarkdownV2(fromUser.userName)
                     const age = escapeMarkdownV2(fromUser.age.toString())
-                    const dist = escapeMarkdownV2(distance.toString())
                     const message = escapeMarkdownV2(element.text)
-                    ctx.reply(`Сообщение от [${name}](t.me/${userName}), ${age}, ${dist}км\\.\\: ${message}`, {
+                    ctx.reply(`Сообщение от [${name}](t.me/${userName}), ${age}, ${escapeMarkdownV2((smartRound(element.distance)/1000).toString())}км\\.\\: ${message}`, {
                         parse_mode: 'MarkdownV2',
                         disable_web_page_preview: true,
                         reply_markup: new InlineKeyboard().text('Прододжить', 'startSearch')

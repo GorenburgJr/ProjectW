@@ -15,6 +15,7 @@ export async function editComponent(ctx) {
         bio: 500,
         name: 15
     };
+
     switch (ctx.session.editingComponent) {
             case 'language':
             case 'pets':
@@ -26,6 +27,7 @@ export async function editComponent(ctx) {
               }
               await ExtraInfoRepo.update({ chatId }, { [ctx.session.editingComponent]: ctx.message.text });
               await imgUser(ctx,await msgUser(ctx), ctx.session.editingComponent === 'language' ||  ctx.session.editingComponent === 'bio' ? bioKeyboard1 : bioKeyboard2);
+              ctx.session.editingComponent = undefined
               break;
     
             case 'height':
@@ -36,6 +38,7 @@ export async function editComponent(ctx) {
               }
               await ExtraInfoRepo.update({ chatId }, { height });
               await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
+              ctx.session.editingComponent = undefined
               break;
               case 'name':
                 if (ctx.message.text.length > maxLengths[ctx.session.editingComponent]) {
@@ -59,5 +62,7 @@ export async function editComponent(ctx) {
               default:
                 break;
             }
+
+            return ctx
     
 }

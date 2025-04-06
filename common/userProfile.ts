@@ -27,9 +27,7 @@ export async function msgUser(ctx) {
     const user = await AppDataSource.manager.findOneBy(User, { chatId });
     const extra = await AppDataSource.manager.findOneBy(ExtraInfo, { chatId });
 
-    let messageText = `${ctx.chat.first_name}, Твой профиль сейчас выглядит так:
-    ${user.name}, ${user.age}, Я:${sexTypes[user.sex]}, Ищу:${sexTypes[user.sexSearch]}, 
-    Анкета активна:${YesNoTypes[String(user.inSearch) as 'true' | 'false']}`
+    let messageText = `${ctx.chat.first_name}, Твой профиль сейчас выглядит так:\n${user.name}, ${user.age}, Я:${sexTypes[user.sex]}, Ищу:${sexTypes[user.sexSearch]}, \nАнкета активна:${YesNoTypes[String(user.inSearch) as 'true' | 'false']}`
     if(extra){
         if(typeof(extra.bio) == 'string'){
             messageText += `\nБио: ${extra.bio}`

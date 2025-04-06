@@ -45,8 +45,6 @@ import { Reactions } from '../src/entity/Reactions';
 import { showLetters } from './showLetters';
 import { sendMatch } from '../app';
 import { Report } from '../src/entity/Report';
-import { BanList } from '../src/entity/BanList';
-import { banReport } from '../admin/banReport';
 import { notBanReport } from '../admin/notBanReport';
 
   const ExtraInfoRepo = AppDataSource.getRepository(ExtraInfo)
@@ -57,12 +55,11 @@ export async function CALLBACK (ctx) {
     const chatId = String(ctx.chat.id)
     const data = ctx.callbackQuery.data;
     let user = await userRepo.findOneBy({ chatId })
-
     const setComponent = (key: string) => {
-      if (user.inSearch) {
-        ctx.session.searchSettingComponent = key;
-      } else {
+      if (user.editing) {
         ctx.session.editingComponent = key;
+      } else {
+        ctx.session.searchSettingComponent = key;
       }
     };
         
@@ -338,7 +335,7 @@ export async function CALLBACK (ctx) {
             break;
         // === ТЕКСТОВЫЕ ПОЛЯ ===
         case 'languge':
-          if(user.inSearch){
+          if(!user.editing){
             setComponent('language');
           await ctx.editMessageReplyMarkup({ reply_markup: yesNoInKeyboard });
           }else {
@@ -347,7 +344,7 @@ export async function CALLBACK (ctx) {
           }
           break;        
         case 'height':
-            if (user.inSearch) {
+            if (!user.editing) {
                 setComponent('height');
                 await ctx.reply('Напиши нижнюю границу роста', { reply_markup: cancelBackKeyboard })
             } else {
@@ -357,7 +354,7 @@ export async function CALLBACK (ctx) {
             break;
         
         case 'bio':
-            if (user.inSearch) {
+            if (!user.editing) {
                 setComponent('bio');
                 await ctx.editMessageReplyMarkup({ reply_markup: yesNoInKeyboard });
             } else {
@@ -367,7 +364,7 @@ export async function CALLBACK (ctx) {
             break;
         
         case 'work':
-            if (user.inSearch) {
+            if (!user.editing) {
                 setComponent('work');
                 await ctx.editMessageReplyMarkup({ reply_markup: yesNoInKeyboard });
             } else {
@@ -377,7 +374,7 @@ export async function CALLBACK (ctx) {
             break;
         
             case 'pets':
-              if (user.inSearch) {
+              if (!user.editing) {
                 setComponent('pets');
                 await ctx.editMessageReplyMarkup({ reply_markup: yesNoInKeyboard });
               } else {
@@ -472,7 +469,7 @@ export async function CALLBACK (ctx) {
         
             case 'quitEditing':
               await ctx.reply('Анкета успешно сохранена!\nПриступим к поиску');
-              await userRepo.update({ chatId }, { inSearch: true });
+              await userRepo.update({ chatId }, { editing: false });
               ctx.reply(await msgSearch(ctx),{reply_markup: settingsBioKeyboard1})
               break;
         
@@ -578,7 +575,7 @@ export async function CALLBACK (ctx) {
                 
                 await AppDataSource.manager.update(ProfileStack, {chatId}, {stack: arr, index: 0})
               }
-              showLetters(ctx)// письма
+              // showLetters(ctx)// письма
               if(arr.length === 0){
                 ctx.reply('По твоему запросу анкеты не были найдены. попробуй изменить свои настройки поиска')
                 ctx.reply(await msgSearch(ctx), {reply_markup: settingsBioKeyboard1})
@@ -593,7 +590,6 @@ export async function CALLBACK (ctx) {
               break;}
             case 'like':{
               const profileStack = await AppDataSource.manager.findOneBy(ProfileStack,{ chatId })
-              profileStack.index
               const like = new Reactions
               like.fromUser = chatId
               like.toUser =  profileStack.stack[profileStack.index].chatId
@@ -645,6 +641,7 @@ export async function CALLBACK (ctx) {
             case 'letter':{
               ctx.reply('Напишите сообщение пользователю.\nОграничение:100 символов')
               ctx.session.letter = true
+              break;
             }
             case 'showBio':{
               let index = ctx.session.stackIndex

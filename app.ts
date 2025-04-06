@@ -43,6 +43,7 @@ interface FormSession {
 type MyContext = Context & SessionFlavor<FormSession>;
 
 export const bot = new GrammyBot<MyContext>(process.env.BOT_API_TOKEN);
+const botReport = new GrammyBot(process.env.BOT_API_TOKEN_REPORT)
 
 export async function sendMatch (chatId, userChatId) {
   const user = await AppDataSource.manager.findOneBy(User, {chatId:userChatId})
@@ -50,8 +51,12 @@ export async function sendMatch (chatId, userChatId) {
                       parse_mode: 'MarkdownV2',
                       disableWebPagePreview: true
 } as any)
-  await imgMatchUser(chatId)
-  bot.api.sendMessage(chatId,await msgMatchUser(chatId))
+  await imgMatchUser(chatId,userChatId)
+  bot.api.sendMessage(chatId,await msgMatchUser(userChatId))
+}
+
+export async function sendLetterIfMatch(chatId, letter) {
+  bot.api.sendMessage(chatId, `Пользователь также прислал вам сообщение: ${letter}`)
 }
 
 AppDataSource.initialize()
@@ -110,6 +115,7 @@ AppDataSource.initialize()
         ctx.reply('Вначале закончи регистрацию!\n/start')
         return
       } 
+      await userRepo.update({chatId}, {editing: true})
       await imgUser(ctx,await msgUser(ctx), bioKeyboard1)
     })
 
@@ -128,9 +134,13 @@ AppDataSource.initialize()
         ctx.reply('Вначале закончи регистрацию!\n/start')
         return
       } else {
-        await userRepo.update({ chatId }, { inSearch: true })
+        await userRepo.update({ chatId }, { inSearch: true, editing:false })
         ctx.reply(await msgSearch(ctx),{reply_markup: settingsBioKeyboard1})
       }
+    })
+
+    bot.command('help', async (ctx) => {
+      ctx.reply('Мы работаем над этим')
     })
 
     bot.command('reportpanel', async (ctx) => {
@@ -160,8 +170,6 @@ AppDataSource.initialize()
         await CALLBACK(ctx)
         
     })
-    
-    bot.on('message:photo', async (ctx) => {await downloadingUserPhoto(ctx)})
 
     bot.on("message:text", async (ctx) => {
       const chatId = String(ctx.chat.id);
@@ -206,39 +214,49 @@ AppDataSource.initialize()
         user.chatId = chatId;
       }
 
-      if (ctx.session.searchSettingComponent !== null ||ctx.session.searchSettingComponent !== undefined){
+      if (ctx.session.searchSettingComponent !== undefined){
         searchComponent(ctx)
         return
       }
       
-      if (ctx.session.editingComponent !== null ||ctx.session.editingComponent !== undefined){
+      if (ctx.session.editingComponent !== undefined){
         editComponent(ctx)
         return
       }
 
-      if(ctx.session.editingComponent !== null){
-      ctx.session.editingComponent = null;
-      return
-      }
-        ctx.reply('Я не понял. \nНапиши /help')
+      ctx.reply('Я не понял. \nНапиши /help')
     })
 
     bot.on(':location', async (ctx) => {await downloadingUserLocations(ctx)})
 
+    bot.on('message:photo', async (ctx) => {await downloadingUserPhoto(ctx)})
+
     bot.catch((err) => {
       const ctx = err.ctx;
-      console.log(`Error while handling update ${ctx.update.update_id}`);
+      botReport.api.sendMessage('392290570', `Error while handling update\nBot GigaVinchik:\n${ctx.update.update_id}`)
+      botReport.start()
+      // console.log(`Error while handling update ${ctx.update.update_id}`);
       const e = err.error;
 
       if (e instanceof GrammyError) {
-        console.log("Error in request:", e.description);
+        botReport.api.sendMessage('392290570', `Error in request\nBot GigaVinchik:\n${e.description}`)
+        botReport.start()
+        // console.log("Error in request:", e.description);
       } else if (e instanceof HttpError) {
-        console.log("Error in request", e);
+        botReport.api.sendMessage('392290570', `Error in request\nBot GigaVinchik:\n${e}`)
+        botReport.start()
+        // console.log("Error in request", e);
       } else {
-        console.log("Error undefined", e);
+        botReport.api.sendMessage('392290570', `Error in request\nBot GigaVinchik:\n${e}`)
+        botReport.start()
+        // console.log("Error undefined", e);
       }
     });
 
     bot.start();
   })
-  .catch((error) => console.log(error));
+  .catch((error) => {
+    botReport.api.sendMessage('392290570', `Error in DB \nBot GigaVinchik:\n${error}`)
+    botReport.start()
+    // console.log(error)
+  });
