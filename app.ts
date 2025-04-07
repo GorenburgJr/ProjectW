@@ -66,6 +66,7 @@ AppDataSource.initialize()
         initial: (): FormSession => ({ activeStepName: null  , binary: 0}),
       })
     );
+    console.log(Boolean(process.env.DATA_BASE_SYNC)),
     bot.api.setMyCommands([
       {
           command:  'start', 
